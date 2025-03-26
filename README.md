@@ -1,169 +1,169 @@
 # Storacha MCP Storage Server
 
-A Model Context Protocol (MCP) server implementation for decentralized storage using the Storacha network. This server enables AI systems to store and retrieve files through a standardized interface.
+A Model Context Protocol (MCP) server implementation for Storacha storage, enabling AI applications to interact with decentralized storage through a standardized interface.
 
 ## Features
 
-- **MCP Compliance**: Implements the Model Context Protocol for standardized tool discovery and invocation
-- **Decentralized Storage**: Uses Storacha network for reliable, decentralized file storage
-- **HTTP Gateway**: Fast file retrieval through Storacha's HTTP gateway
+- **File Operations**
+  - Upload files to Storacha's decentralized storage network
+  - Retrieve files via Storacha's HTTP gateway
+- **Dual Transport Modes**
+  - HTTP with Server-Sent Events (SSE) for real-time communication
+  - Stdio transport for local integrations
+- **Standardized Interface**
+  - MCP-compliant API for tool discovery and invocation
+  - JSON-RPC message handling
+- **Security**
+  - Bearer Token
+  - CORS configuration
+  - Input validation
+  - Secure error handling
+  
+## Usa Cases
 
-## Prerequisites
-
-- Node.js 18.x or later
-- pnpm 9.x or later
-- A Storacha private key and delegation for storage access
 
 ## Installation
 
-1. Clone the repository:
+1. Clone the repository
    ```bash
    git clone https://github.com/storacha/mcp-storage-server.git
    cd mcp-storage-server
    ```
 
-2. Install dependencies:
+2. Install dependencies
    ```bash
    pnpm install
    ```
 
-3. Create a `.env` file:
+3. Create a `.env` file
    ```bash
    cp .env.example .env
    ```
 
-4. Configure your environment variables in `.env`:
-   ```env
-   PORT=3000                      # Server port
-   HOST=0.0.0.0                   # Server host
-   SHARED_ACCESS_TOKEN=           # Optional access token
-   PRIVATE_KEY=                   # Your Storacha private key
-   DELEGATION=                    # Your storage delegation
-   GATEWAY_URL=                   # Custom gateway URL (optional)
-   MAX_FILE_SIZE=104857600        # Maximum file size (100MB)
-   ```
+4. Configure the server using the following environment variables
+
+    ```env
+    # MCP Server Configuration
+    MCP_SERVER_PORT=3001                # Optional: The port the server will listen on (default: 3001)
+    MCP_SERVER_HOST=0.0.0.0             # Optional: The host address to bind to (default: 0.0.0.0)
+    MCP_CONNECTION_TIMEOUT=30000        # Optional: The connection timeout in milliseconds (default: 30000)
+    MCP_TRANSPORT_MODE=stdio            # Optional: The transport mode to use (stdio or sse) (default: stdio)
+
+    # Security
+    SHARED_ACCESS_TOKEN=                # Optional: Set this to require authentication for uploads
+
+    # Storage Client Configuration
+    PRIVATE_KEY=                        # Required: The Storacha Agent private key that is authorized to upload files
+    DELEGATION=                         # Required: The base64 encoded delegation that authorizes the Agent owner of the private key to upload files
+    GATEWAY_URL=https://storacha.link   # Optional: Custom gateway URL for file retrieval (default: https://storacha.link)
+
+    # File Limits
+    MAX_FILE_SIZE=104857600             # Optional: Maximum file size in bytes (default: 100MB) 
+    ```
+
+### Starting the Server
+
+Option 1 - Run the Stdio Server (recommended for local server communication)
+```bash
+pnpm start:stdio
+```
+
+Option 2 - Run the SSE Server (recommended for remote server communication)
+```bash
+pnpm start:sse
+```
+
+
+## MCP Client Integration
+
+```typescript
+import { McpClient } from '@modelcontextprotocol/sdk/client';
+
+const client = new McpClient({
+  transport: 'sse',
+  url: 'http://localhost:3000'
+});
+
+// Upload a file
+const result = await client.invoke('upload', {
+  file: fileBuffer,
+  name: 'example.txt',
+  type: 'text/plain'
+});
+```
+
+
+## Testing with MCP Inspector
+
+The MCP Inspector provides a visual interface for testing and debugging MCP servers. To test the Storacha MCP server:
+
+1. Start the MCP Inspector
+```bash
+pnpm inspect:stdio
+```
+
+2. Start the Storacha MCP server
+```bash
+pnpm start:stdio
+```
+
+3. Connect to your server
+   - Open the Browser and access the Inspector UI at http://localhost:5173/#tools
+   - Enter the server URL (e.g., `http://localhost:3001`)
+   - The Inspector will automatically discover available tools
+   - You can test the upload and retrieve tools directly from the interface
+
+
+### Debugging Tips
+
+- Check the server logs for connection issues
+- Verify environment variables are set correctly
+- Ensure the server is running in SSE or Stdio mode for Inspector compatibility
 
 ## Development
 
-Start the development server with automatic reloading:
-```bash
-pnpm dev
+### Project Structure
+
+```
+/
+├── src/
+│   ├── core/
+│   │   └── server/
+│   │       ├── index.ts           # Main server entry point
+│   │       ├── config.ts          # Server configuration
+│   │       ├── types.ts           # TypeScript type definitions
+│   │       ├── tools/             # MCP tools implementation
+│   │       │   ├── index.ts       # Tool registration
+│   │       │   ├── upload.ts      # Upload tool
+│   │       │   └── retrieve.ts    # Retrieve tool
+│   │       └── transports/        # Transport implementations
+│   │           ├── sse.ts         # SSE transport
+│   │           └── stdio.ts       # Stdio transport
+│   └── storage/                   # Storage client implementation
+├── package.json
+└── tsconfig.json
 ```
 
-Build the project:
+### Building
+
 ```bash
+# Install dependencies
+pnpm install
+
+# Build the project
 pnpm build
+
+# Run tests
+pnpm test
 ```
-
-Run the production server:
-```bash
-pnpm start
-```
-
-Clean the build output:
-```bash
-pnpm clean
-```
-
-## API Endpoints
-
-### MCP Discovery Document
-```http
-GET /.well-known/mcp.json
-```
-Returns the MCP discovery document describing available tools.
-
-### MCP Tool Invocation
-```http
-POST /mcp
-Content-Type: application/json
-
-{
-  "jsonrpc": "2.0",
-  "method": "callTool",
-  "params": {
-    "name": "upload",
-    "input": {
-      "file": "base64_encoded_file_data",
-      "filename": "example.txt"
-    }
-  },
-  "id": 1
-}
-```
-
-### Health Check
-```http
-GET /health
-```
-Returns server health status.
-
-## Available Tools
-
-### Upload Tool
-Uploads a file to the Storacha network.
-
-**Input Schema:**
-```typescript
-{
-  file: string;      // Base64 encoded file data
-  filename: string;  // Original filename
-  type?: string;     // MIME type (optional)
-}
-```
-
-**Output Schema:**
-```typescript
-{
-  cid: string;       // Content ID on Storacha network
-  url: string;       // HTTP gateway URL for the file
-}
-```
-
-### Retrieve Tool
-Retrieves a file from the Storacha network.
-
-**Input Schema:**
-```typescript
-{
-  cid: string;       // Content ID to retrieve
-}
-```
-
-**Output Schema:**
-```typescript
-{
-  data: string;      // Base64 encoded file data
-  type: string;      // MIME type of the file
-}
-```
-
-## Architecture
-
-The server uses a layered architecture.
-
-**HTTP Layer** (Express)
-   - Handles HTTP requests
-   - Manages CORS and middleware
-   - Routes requests to MCP server
-
-**MCP Layer** (MCP Server)
-   - Processes JSON-RPC messages
-   - Manages tool registration and execution
-   - Handles request validation
-
-**Storage Layer** (Storage Client)
-   - Interfaces with Storacha network
-   - Manages file uploads and retrievals
-   - Handles content addressing
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
@@ -171,4 +171,4 @@ MIT and/or Apache 2 License
 
 ## Support
 
-For support, please visit [Storacha Support](https://storacha.network) or open an issue in this repository. 
+For support, please visit [Storacha Support](https://storacha.network) or open an issue in this repository.

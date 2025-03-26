@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerTools } from "./tools/index.js";
 import { startStdioTransport } from "./transports/stdio.js";
 import { startSSETransport } from "./transports/sse.js";
-import { loadConfig } from "./config.js";
+import { McpServerConfig } from "./types.js";
 
 /**
  * Creates the MCP Storage Server.
@@ -11,7 +11,7 @@ import { loadConfig } from "./config.js";
  * 
  * @returns {Promise<McpServer>} The MCP server instance
  */
-async function startMCPServer() {
+async function startMCPServer(config: McpServerConfig) {
   try {
 
     // Create a new MCP server instance
@@ -30,7 +30,7 @@ async function startMCPServer() {
     console.error(`MCP Server initialized`);
     console.error("Server is ready to handle requests");
 
-    const config = loadConfig();
+    
     if (config.transportMode === 'sse') {
       await startSSETransport(server, config);
     } else {

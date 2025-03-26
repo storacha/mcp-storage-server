@@ -2,7 +2,7 @@
 
 import 'dotenv/config';
 import startMCPServer from './src/core/server/index.js';
-
+import { loadConfig } from './src/core/server/config.js';
 /**
  * Main entry point for the MCP Storage Server.
  * Server mode is determined by the MCP_TRANSPORT_MODE environment variable:
@@ -11,7 +11,8 @@ import startMCPServer from './src/core/server/index.js';
  */
 async function main() {
   try {
-    await startMCPServer();
+    const config = loadConfig();
+    await startMCPServer(config);
   } catch (error) {
     console.error("Error starting MCP Storage Server:", error);
     process.exit(1);

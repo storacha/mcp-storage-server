@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the specification for implementing a Model Context Protocol (MCP) server for Storacha storage. This MCP server will provide a standardized interface for AI models and applications to interact with Storacha's decentralized storage capabilities using a simple HTTP-based approach.
+This document outlines the specification for implementing a Model Context Protocol (MCP) server for Storacha storage. This MCP server will provide a standardized interface for AI models and applications to interact with Storacha's decentralized storage.
 
 ## Key Concepts
 
@@ -18,14 +18,14 @@ An MCP server provides a standardized way for AI applications to discover and us
 
 ```mermaid
 flowchart LR
-    A[AI Application] -->|HTTP Request| B[Storacha MCP Server]
+    A[AI Application] -->|Request| B[Storacha MCP Server]
     B -->|Upload| C[w3up-client]
     B -->|Retrieve| E[HTTP Gateway]
     C -->|Store| D[(Decentralized Storage)]
     D -->|Content-addressed Data| E
     C -->|Response| B
     E -->|Response| B
-    B -->|HTTP Response| A
+    B -->|Response| A
     
     classDef client fill:#d4f1f9,stroke:#0078d7,stroke-width:2px
     classDef server fill:#ffe6cc,stroke:#d79b00,stroke-width:2px
@@ -48,7 +48,7 @@ The Storacha MCP server will support two primary operations in this first iterat
 
 #### Upload Operation
 
-- **Multiple File Support**: The upload operation can handle one or more files in a single request
+- **Single File Support**: The upload operation can handle one in a single request
 - **Universal File Types**: Supports any file type, which is automatically converted to a blob by the Storacha client
 - **Content Addressing**: Returns Content IDs (CIDs) for uploaded files, enabling permanent, verifiable references
 - **Space Delegation**: Files are uploaded to the space authorized by the provided delegation in the server configuration
@@ -81,14 +81,15 @@ The Storacha MCP server will support two primary operations in this first iterat
 
 The Storacha MCP server requires the following configuration:
 
+- **MCP_SERVER_PORT**: Port to run the server on (default: 3001)
+- **MCP_SERVER_HOST**: Host to bind to (default: '0.0.0.0')
+- **MCP_CONNECTION_TIMEOUT**: Connection timeout in milliseconds (default: 30000)
+- **MCP_TRANSPORT_MODE**: Transport mode to use (stdio or sse) (default: stdio)
 - **SHARED_ACCESS_TOKEN**: Optional access token used to authenticate upload operations (if not set, authentication is disabled)
-- **PRIVATE_KEY**: Agent private key for w3up-client (for default delegation)
-- **DELEGATION**: Default delegation authorized to store content
-- **PORT**: Port to run the server on (default: 3000)
-- **HOST**: Host to bind to (default: '0.0.0.0')
-- **GATEWAY_URL**: Custom gateway URL (default: 'https://storacha.link')
-- **MAX_FILE_SIZE_MB**: Maximum file size in MB (default: 100MB)
-  - TODO: double check this limitation in the Storacha client
+- **PRIVATE_KEY**: Required - Agent private key for w3up-client (for default delegation)
+- **DELEGATION**: Required - The base64 encoded delegation that authorizes the Agent owner of the private key to upload files
+- **GATEWAY_URL**: Custom gateway URL for file retrieval (default: 'https://storacha.link')
+- **MAX_FILE_SIZE**: Maximum file size in bytes (default: 104857600 - 100MB)
 
 ### Storage Client
 
@@ -99,204 +100,130 @@ The server needs to interface with Storacha storage via:
 
 ### MCP Transport Options
 
-The Model Context Protocol (MCP) is transport-agnostic, meaning it can operate over different communication channels. The MCP TypeScript SDK provides several transport options:
+The Model Context Protocol (MCP) is transport-agnostic, meaning it can operate over different communication channels. The Storacha MCP server supports two transport modes:
 
-1. **HTTP Transport**: Using an HTTP server like Express to handle network requests
-   - Pros: Widely compatible, stateless, familiar to developers
-   - Cons: Higher latency for frequent communications
-   - Best for: Public-facing API servers, RESTful integrations
+1. **Server-Sent Events (SSE)**: One-way, server-to-client streaming
+   - Pros: 
+     - Real-time updates for file operation status
+     - Lower latency for status notifications
+     - Compatible with web browsers and HTTP clients
+   - Cons: 
+     - One-way communication only
+     - Requires HTTP server setup
+   - Best for: 
+     - Web-based integrations
+     - Real-time status updates
+     - Browser-based clients
 
-2. **Server-Sent Events (SSE)**: One-way, server-to-client streaming
-   - Pros: Lower latency, real-time updates
-   - Cons: More complex, one-way communication
-   - Best for: Scenarios requiring real-time updates
+2. **Standard I/O (stdio)**: Communication through process streams
+   - Pros: 
+     - No network setup required
+     - Simple for local tools and CLI applications
+     - Direct process-to-process communication
+   - Cons: 
+     - Limited to local machine
+     - No network access
+   - Best for: 
+     - CLI tools
+     - Local development
+     - Process integration
 
-3. **Standard I/O (stdio)**: Communication through process streams
-   - Pros: No network needed, simple for local tools
-   - Cons: Only works locally, not for networked applications
-   - Best for: CLI tools, local agent integration
+The server can be configured to use either transport mode via the `MCP_TRANSPORT_MODE` environment variable:
+- `sse`: Uses Express with SSE for HTTP-based communication
+- `stdio`: Uses standard I/O streams for local communication
 
-4. **WebSockets**: Bi-directional, persistent connections
-   - Pros: Low latency, bi-directional communication
-   - Cons: More complex, requires persistent connections
-   - Best for: Highly interactive applications
+The SSE implementation includes:
+- Express server for HTTP handling
+- CORS configuration for web access
+- Temporary session-based message routing
+- Connection timeout management
+- Health check endpoint
 
-For the Storacha MCP server, we can use HTTP transport with Express for several reasons:
-- File uploads and retrievals are typically one-time operations, not requiring persistent connections
-- HTTP is widely supported across all platforms
-- RESTful endpoints are easy to secure, route, and scale
-- The implementation is simpler and easier to maintain
-
-Any objections?
-
-The implementation uses Express to handle the HTTP layer while delegating the MCP-specific logic to the `McpServer` class from the MCP TypeScript SDK.
+The stdio implementation provides:
+- Direct process communication
+- Simple message passing
+- No network dependencies
+- Easy local testing
 
 ## MCP Server Implementation
 
 The Storacha MCP server utilizes the latest [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk), which provides a framework for creating MCP-compliant servers. This section outlines some implementation details based on the most recent SDK version.
 
-### Server Setup
+### SSE Server Setup
 
-```typescript
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import express from "express";
-import { z } from "zod";
-import { StorageClient } from "./storage-client.js";
-import { config } from "./config.js";
+The SSE server implementation consists of the following components:
 
-// Initialize storage client with configuration
-const storage = new StorageClient({
-  privateKey: config.PRIVATE_KEY,
-  delegation: config.DELEGATION,
-  gatewayUrl: config.GATEWAY_URL || 'https://storacha.link'
-});
+1. **Server Configuration**
+   - Express application for HTTP server functionality
+   - CORS enabled with appropriate headers for web access
+   - OPTIONS request handling for preflight requests
+   - Connection timeout configuration (default: 30 seconds)
+   - Configurable via `MCP_CONNECTION_TIMEOUT` environment variable
 
-// Create Express app for HTTP server functionality
-// Express handles HTTP routing, CORS, body parsing, etc.
-const app = express();
-app.use(express.json({ limit: config.MAX_FILE_SIZE_MB || '100mb' }));
+2. **Connection Management**
+   - Maintains an in memory Map of active connections using session IDs
+   - Each connection is associated with a unique SSEServerTransport instance
+   - Automatic cleanup of closed connections
+   - Idle connections are terminated after timeout period
 
-// Enable CORS for client connections
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Methods', 'GET, POST, HEAD');
-    return res.status(200).json({});
-  }
-  next();
-});
+3. **Endpoints**
+   - `/sse`: Establishes SSE connections
+     - Sets appropriate SSE headers (Content-Type, Cache-Control, Connection)
+     - Creates and stores new transport instance
+     - Handles connection closure
+     - Connects transport to MCP server
+   
+   - `/messages`: Handles client-to-server communication
+     - Routes messages to appropriate transport based on session ID
+     - Processes messages through the connected transport
+   
+   - `/health`: Provides server status information
+     - Reports server initialization state
+     - Shows active connection count
+     - Lists connected session IDs
+   
+   - `/`: Root endpoint with basic server information
+     - Server name and version
+     - Available endpoints
+     - Current server status
+     - Active connection count
 
-// Create MCP server instance to handle MCP protocol logic
-// This processes JSON-RPC messages but doesn't handle networking
-const server = new McpServer({
-  name: "Storacha MCP Storage Server",
-  version: "1.0.0",
-  description: "Distributed storage for AI systems via the Storacha Network",
-  contactInfo: {
-    name: "Storacha Support",
-    url: "https://storacha.ai/support"
-  }
-});
+4. **Server Startup**
+   - Binds to configured host and port
+   - Sets connection timeout from configuration
+   - Logs server startup information
 
-// Register tools (capabilities) with the MCP server
-server.tool(
-  "upload",
-  {
-    file: z.string().describe('The file to upload (binary data or base64 encoded string)'),
-    name: z.string().optional().describe('Name for the uploaded file'),
-    delegation: z.object({}).optional().describe('Optional delegation proof for authorization')
-  },
-  async ({ file, name = 'unnamed-file', delegation }, context) => {
-    try {
-      // Validate authentication if access token is configured
-      
-      // If delegation is provided in the request, use it
-      
-      // Validate file size
-      
-      // Upload the file
-      
-      // Return the response
-      return {
-        content: [{ 
-          type: "text", 
-          text: JSON.stringify({
-            cid: result.cid,
-            size: result.size,
-            url: `${config.GATEWAY_URL || 'https://storacha.link'}/ipfs/${result.cid}`
-          })
-        }]
-      };
-    } catch (error) {
-      console.error('Upload error:', error);
-      
-      return {
-        content: [{ 
-          type: "text", 
-          text: `Upload failed: ${error.message}` 
-        }],
-        isError: true
-      };
-    }
-  }
-);
+### Stdio Server Setup
 
-server.tool(
-  "retrieve",
-  {
-    cid: z.string().describe('The Content ID (CID) of the file to retrieve')
-  },
-  async ({ cid }) => {
-    try {
-      // Validate CID format
-      
-      // Retrieve file from gateway
-      try {
-        // Return the response
-        return {
-          content: [{ 
-            type: "text", 
-            text: JSON.stringify({
-              data: result.data,
-              contentType: result.contentType
-            })
-          }]
-        };
-      } catch (fetchError) {
-        return {
-          content: [{ 
-            type: "text", 
-            text: `Gateway connection failed: ${fetchError.message}` 
-          }],
-          isError: true
-        };
-      }
-    } catch (error) {
-      console.error('Retrieve error:', error);
-      
-      return {
-        content: [{ 
-          type: "text", 
-          text: `Retrieval failed: ${error.message}` 
-        }],
-        isError: true
-      };
-    }
-  }
-);
+The stdio server implementation consists of the following components:
 
-// Discovery endpoint - Express routes the request, MCP server provides the data
-app.get('/.well-known/mcp.json', (req, res) => {
-  return res.json(server.getDiscoveryDocument());
-});
+1. **Server Configuration**
+   - Direct process-to-process communication using standard I/O streams
+   - No network dependencies or HTTP server required
+   - Simple message passing interface
+   - Connection timeout configuration (default: 30 seconds)
+   - Configurable via `MCP_CONNECTION_TIMEOUT` environment variable
 
-// MCP endpoint for tool invocations - Express handles HTTP, MCP server processes the request
-app.post('/mcp', async (req, res) => {
-  try {
-    // Use the MCP server to process the JSON-RPC request
-    const result = await server.processRequest(req.body);
-    return res.json(result);
-  } catch (error) {
-    console.error('Error handling request:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
-    });
-  }
-});
+2. **Connection Management**
+   - Single persistent connection through stdin/stdout
+   - No need for session tracking or connection cleanup
+   - Direct message routing to MCP server
+   - Process-level communication
+   - Idle connections are terminated after timeout period
 
-// Add a health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
+3. **Message Handling**
+   - Reads JSON-RPC messages from stdin
+   - Processes messages through MCP server
+   - Writes responses to stdout
+   - Maintains message order through stream processing
+   - Timeout handling for long-running operations
 
-// Start the Express HTTP server to listen for incoming requests
-app.listen(config.PORT || 3000, config.HOST || '0.0.0.0', () => {
-  console.log(`Storacha MCP server running on port ${config.PORT || 3000}`);
-  console.log(`MCP endpoint available at http://${config.HOST || '0.0.0.0'}:${config.PORT || 3000}/mcp`);
-});
-```
+4. **Server Startup**
+   - Initializes stdio transport
+   - Connects transport to MCP server
+   - Sets connection timeout from configuration
+   - Logs server startup information
+   - Ready to process messages from stdin
 
 ### Error Handling
 
@@ -324,47 +251,32 @@ This format allows clients to easily identify errors and display appropriate mes
 
 All errors are consistently formatted to follow the MCP specification, including the appropriate HTTP status codes for transport-level errors.
 
-### Discovery Endpoint
-
-The MCP server provides a discovery endpoint at `.well-known/mcp.json` that allows clients to discover available tools. This endpoint returns a JSON document describing the server and its available tools:
-
-```json
-{
-  "name": "Storacha MCP Storage Server",
-  "version": "1.0.0",
-  "description": "Decentralized storage for AI systems via the Storacha network",
-  "contactInfo": {
-    "name": "Storacha Support",
-    "url": "https://storacha.ai/support"
-  },
-  "tools": [
-    {
-      "name": "upload",
-      "description": "Upload a file to Storacha storage",
-      "parameters": {
-        ...
-      }
-    },
-    {
-      "name": "retrieve",
-      "description": "Retrieve a file from Storacha storage by CID",
-      "parameters": {
-        ...
-      }
-    }
-  ]
-}
-```
-
 ## Handling Large File Uploads
 
-For handling large file uploads, the server includes:
+The server implements the following mechanisms to handle large file uploads:
 
-1. **Increased JSON Body Limit**: The Express app is configured with a 100MB limit by default for JSON payloads - or the limit can be configured via `MAX_FILE_SIZE_MB` environment variable
-2. **File Size Validation**: File size is validated before processing to prevent server overload
-  - TODO: double check if the use only the express max file config (how to handle the error and return the proper format?)
-  - TODO: Validate if with MotherDAO folks need to upload extremely large files
-3. **Timeouts**: Server-side timeouts can be configured for large file uploads
+1. **File Size Limits**
+   - Default maximum file size: 100MB (104857600 bytes)
+   - Configurable via `MAX_FILE_SIZE` environment variable
+   - Size validation occurs before processing to prevent server overload
+   - Returns standardized MCP error format when size limit is exceeded
+
+2. **Connection Timeouts**
+   - Default connection timeout: 30 seconds
+   - Configurable via `MCP_CONNECTION_TIMEOUT` environment variable
+   - Applies to both SSE and stdio transports
+   - Idle connections are automatically terminated
+
+3. **Error Handling**
+   - Standardized MCP error responses for size-related issues
+   - Clear error messages indicating size limits
+   - Proper HTTP status codes for transport errors
+   - Graceful handling of connection timeouts
+
+Note: The following features are planned for future implementation:
+- Stream-based processing for large files
+- Chunked upload support
+- Memory management optimizations
 
 ## Client Integrations
 
@@ -386,9 +298,13 @@ Regardless of the approach, integration typically follows these steps:
 
 1. **Client Initialization**: Configure the client with the Storacha MCP server URL and authentication if required.
 
-2. **Tool Discovery**: Use the `.well-known/mcp.json` endpoint to discover available tools and their parameter schemas.
+2. **Transport Selection**: Choose the appropriate transport mode:
+   - For web-based clients: Use SSE transport with `/sse` and `/messages` endpoints
+   - For local tools: Use stdio transport for direct process communication
 
-3. **Operation Invocation**: Call the upload or retrieve operations with appropriate parameters.
+3. **Operation Invocation**: Call the upload or retrieve operations with appropriate parameters:
+   - For SSE transport: Send JSON-RPC messages to `/messages` endpoint
+   - For stdio transport: Send JSON-RPC messages through stdin
 
 4. **Response Processing**: Handle the standardized responses returned by the MCP server, including proper error handling.
 
