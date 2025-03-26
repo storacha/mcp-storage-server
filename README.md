@@ -21,6 +21,15 @@ A Model Context Protocol (MCP) server implementation for Storacha storage, enabl
   
 ## Usa Cases
 
+- **Document Storage & Analysis**: Securely upload and retrieve Blob documents.
+- **Long-term Structured Data Storage**: Maintain structured data storage optimized for longevity and accessibility.
+- **Data Sharing Between Agents and Systems**: Easily share data across multiple agents and diverse systems using **CIDs (Content Identifiers)**, enabling decentralized, verifiable, and efficient data exchange.
+- **Application Integration**: Seamlessly integrate Storacha storage retrieval into applications via the Model Context Protocol.
+- **AI Model Development**: Support AI models by providing reliable access to external datasets stored in Storacha.
+- **LLM Integration**: Enhance large language models (LLMs) by connecting directly with Storacha Storage for seamless data access.
+- **Web Application Backups**: Reliably store backup copies of web applications for disaster recovery.
+- **Machine Learning Datasets**: Efficiently manage and access large datasets used in machine learning workflows.
+
 
 ## Installation
 
