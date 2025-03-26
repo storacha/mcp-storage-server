@@ -1,24 +1,17 @@
 #!/usr/bin/env node
 
 import 'dotenv/config';
-import createMCPServer from './src/core/server/index.js';
-import { startSSETransport } from './src/core/server/transports/sse.js';
-import { startStdioTransport } from './src/core/server/transports/stdio.js';
+import startMCPServer from './src/core/server/index.js';
 
 /**
  * Main entry point for the MCP Storage Server.
- * Server mode is determined by the NODE_ENV environment variable:
+ * Server mode is determined by the MCP_TRANSPORT_MODE environment variable:
  * - 'stdio': Starts the server in stdio mode (default)
  * - 'http': Starts the server in HTTP mode with SSE transport
  */
 async function main() {
   try {
-    const mcpServer = await createMCPServer();
-    if (process.env.NODE_ENV === 'http') {
-      await startSSETransport(mcpServer);
-    } else {
-      await startStdioTransport(mcpServer);
-    }
+    await startMCPServer();
   } catch (error) {
     console.error("Error starting MCP Storage Server:", error);
     process.exit(1);

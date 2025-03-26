@@ -1,5 +1,6 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServerConfig } from "../types.js";
 
 
 /**
@@ -11,8 +12,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
  * @param mcpServer - The MCP server instance
  * @returns The MCP server and transport instance
  */
-export const startStdioTransport = async (mcpServer: McpServer) => {
+export const startStdioTransport = async (mcpServer: McpServer, config: McpServerConfig) => {
   try {
+    // Set timeouts on stdin and stdout
+    process.stdin.setTimeout(config.connectionTimeout);
+    process.stdout.setTimeout(config.connectionTimeout);
+    
     // Create StdIO transport
     const transport = new StdioServerTransport();
     

@@ -7,8 +7,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "start:stdio": "NODE_ENV=stdio node dist/index.js",
-    "start:http": "NODE_ENV=http node dist/index.js",
+    "start:stdio": "MCP_TRANSPORT_MODE=stdio node dist/index.js",
+    "start:http": "MCP_TRANSPORT_MODE=http node dist/index.js",
     "dev": "tsc-watch --onSuccess \"node dist/index.js\"",
     "clean": "rm -rf dist",
     "lint": "eslint src --ext .ts",
@@ -16,8 +16,8 @@
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
     "inspect": "pnpm build && npx @modelcontextprotocol/inspector node dist/index.js",
-    "inspect:http": "pnpm build && NODE_ENV=http npx @modelcontextprotocol/inspector node dist/index.js",
-    "inspect:stdio": "pnpm build && NODE_ENV=stdio npx @modelcontextprotocol/inspector node dist/index.js"
+    "inspect:http": "pnpm build && MCP_TRANSPORT_MODE=http npx @modelcontextprotocol/inspector node dist/index.js",
+    "inspect:stdio": "pnpm build && MCP_TRANSPORT_MODE=stdio npx @modelcontextprotocol/inspector node dist/index.js"
   },
   "keywords": [
     "mcp",

@@ -1,10 +1,9 @@
 import express from "express";
 import cors from "cors";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import server from "../index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-
-const PORT = parseInt(process.env.MCP_SERVER_PORT || "3001", 10);
+import { McpServerConfig } from "../types.js";
+import server from "../index.js";
 
 /**
  * SSE transport enables server-to-client streaming with HTTP POST requests for client-to-server communication.
@@ -13,7 +12,7 @@ const PORT = parseInt(process.env.MCP_SERVER_PORT || "3001", 10);
  * @param mcpServer - The MCP server instance
  * @returns The MCP server and transport instance
  */
-export const startSSETransport = async (mcpServer: McpServer) => {
+export const startSSETransport = async (mcpServer: McpServer, config: McpServerConfig) => {
   const app = express();
   const router = express.Router();
 
@@ -182,7 +181,7 @@ export const startSSETransport = async (mcpServer: McpServer) => {
     }
   });
 
-  // Add a simple health check endpoint
+  // Add a simple health check endpoint - required by MCP
   app.get("/health", (req, res) => {
     res.status(200).json({
       status: "ok",
@@ -211,9 +210,12 @@ export const startSSETransport = async (mcpServer: McpServer) => {
   app.use(router);
 
   // Start the HTTP server
-  const httpServer = app.listen(PORT, () => {
-    console.error(`MCP SSE Server running on http://localhost:${PORT}`);
+  const httpServer = app.listen(config.port, () => {
+    console.error(`MCP SSE Server running on http://${config.host}:${config.port}/sse`);
   });
+
+  // Set server timeout
+  httpServer.timeout = config.connectionTimeout;
 
   return httpServer;
 }; 
