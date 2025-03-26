@@ -119,7 +119,7 @@ export class StorachaClient implements StorageClient {
 
       return {
         cid: cid.toString(),
-        url: `${this.getGatewayUrl()}/ipfs/${cid.toString()}`
+        url: new URL(`/ipfs/${cid.toString()}`, this.getGatewayUrl()).toString()
       };
     } catch (error: unknown) {
       if (options.signal?.aborted) {
@@ -140,7 +140,7 @@ export class StorachaClient implements StorageClient {
    */
   async retrieve(cid: string): Promise<RetrieveResult> {
     try {
-      const response = await fetch(`${this.getGatewayUrl()}/ipfs/${cid}`);
+      const response = await fetch(new URL(`/ipfs/${cid}`, this.getGatewayUrl()));
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status} ${response.statusText}`);
       }
