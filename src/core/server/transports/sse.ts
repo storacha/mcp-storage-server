@@ -1,11 +1,19 @@
 import express from "express";
 import cors from "cors";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { server } from "./server-logic.js";
+import server from "../index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 const PORT = parseInt(process.env.MCP_SERVER_PORT || "3001", 10);
 
-export const startSSEServer = async () => {
+/**
+ * SSE transport enables server-to-client streaming with HTTP POST requests for client-to-server communication.
+ * See https://modelcontextprotocol.io/docs/concepts/transports#server-sent-events-sse for more information.
+ * 
+ * @param mcpServer - The MCP server instance
+ * @returns The MCP server and transport instance
+ */
+export const startSSETransport = async (mcpServer: McpServer) => {
   const app = express();
   const router = express.Router();
 
@@ -34,7 +42,7 @@ export const startSSEServer = async () => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (!server) {
+    if (!mcpServer) {
       console.error("Server not initialized yet, rejecting SSE connection");
       return res.status(503).send("Server not initialized");
     }
@@ -61,7 +69,7 @@ export const startSSEServer = async () => {
       });
 
       // Connect transport to server - this must happen before sending any data
-      server.connect(transport).then(() => {
+      mcpServer.connect(transport).then(() => {
         console.error(`SSE connection established for session: ${transport.sessionId}`);
 
         // Send a valid JSON-RPC notification
@@ -178,7 +186,7 @@ export const startSSEServer = async () => {
   app.get("/health", (req, res) => {
     res.status(200).json({
       status: "ok",
-      server: server ? "initialized" : "initializing",
+      server: mcpServer ? "initialized" : "initializing",
       activeConnections: connections.size,
       connectedSessionIds: Array.from(connections.keys())
     });
@@ -194,7 +202,7 @@ export const startSSEServer = async () => {
         messages: "/messages",
         health: "/health"
       },
-      status: server ? "ready" : "initializing",
+      status: mcpServer ? "ready" : "initializing",
       activeConnections: connections.size
     });
   });

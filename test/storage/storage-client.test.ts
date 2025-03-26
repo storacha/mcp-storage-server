@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { StorageConfig } from '../../src/storage/types.js';
-import { DEFAULT_GATEWAY_URL } from '../../src/storage/storage-client.js';
+import { StorageConfig } from '../../src/core/storage/types.js';
+import { DEFAULT_GATEWAY_URL } from '../../src/core/storage/client.js';
 
 
 // Mock dependencies
@@ -57,7 +57,7 @@ describe('StorachaClient', () => {
   let StorachaClient: any;
 
   beforeEach(async () => {
-    const module = await import('../../src/storage/storage-client.js');
+    const module = await import('../../src/core/storage/client.js');
     StorachaClient = module.StorachaClient;
   });
 

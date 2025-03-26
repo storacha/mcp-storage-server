@@ -1,25 +1,18 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import { z } from 'zod';
 
-export const server = new McpServer({
-  name: "Storage MCP Server",
-  version: "1.0.0",
-  description: "MCP server with file storage capabilities",
-});
-
-server.tool(
-  "hello",
-  "Greet the user",
-  {
+export const helloTool = {
+  name: "hello",
+  description: "Greet the user",
+  inputSchema: z.object({
     name: z.string().optional().describe("Name to greet"),
-  },
-  async (input) => {
+  }),
+  handler: async (input: any, extra: any) => {
     try {
       const name = input?.name || "world";
       return {
         content: [
           {
-            type: "text",
+            type: "text" as const,
             text: `Hello ${name}!`,
           },
         ],
@@ -28,11 +21,11 @@ server.tool(
       return {
         content: [
           {
-            type: "text",
+            type: "text" as const,
             text: `Error: ${error instanceof Error ? error.message : String(error)}`,
           },
         ],
       };
     }
   }
-);
+};
