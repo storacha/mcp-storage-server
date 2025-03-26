@@ -3,9 +3,9 @@
  */
 export interface StorageConfig {
   /** Private key for w3up-client authentication */
-  privateKey: string;
+  privateKey: string | undefined;
   /** Delegation for storage access */
-  delegation: string;
+  delegation: string | undefined;
   /** Optional gateway URL for file retrieval */
   gatewayUrl?: string;
 }

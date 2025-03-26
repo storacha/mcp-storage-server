@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import 'dotenv/config';
-import createMCPServer from 'src/core/server/index.js';
-import { startSSETransport } from 'src/core/server/transports/sse.js';
-import { startStdioTransport } from 'src/core/server/transports/stdio.js';
+import createMCPServer from './src/core/server/index.js';
+import { startSSETransport } from './src/core/server/transports/sse.js';
+import { startStdioTransport } from './src/core/server/transports/stdio.js';
 
 /**
  * Main entry point for the MCP Storage Server.

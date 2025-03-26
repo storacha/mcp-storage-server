@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { StorachaClient } from '../../storage/client.js';
+import { loadConfig } from '../../storage/config.js';
 
 type UploadInput = {
   file: Buffer | string;
@@ -7,13 +8,11 @@ type UploadInput = {
   type?: string;
   retries?: number;
   gatewayUrl?: string;
-  privateKey: string;
-  delegation: string;
+  delegation?: string;
 };
 
 const uploadInputSchema = z.object({
-  file: z.union([
-    z.instanceof(Buffer).describe('Raw binary data'),
+  file:
     z.string()
       .refine((str) => {
         try {
@@ -22,12 +21,11 @@ const uploadInputSchema = z.object({
           return false;
         }
       }, 'Invalid base64 string')
-      .describe('Base64 encoded string')
-  ]).describe('The content of the file encoded as a base64 string'),
+      .describe('The content of the file encoded as a base64 string'),
   name: z.string().optional().describe('Name for the uploaded file'),
   type: z.string().optional().describe('MIME type of the file'),
-  gatewayUrl: z.string().optional().describe('Custom gateway URL'),
-  delegation: z.string().describe('Delegation proof')
+  delegation: z.string().optional().describe('Delegation proof (optional, will use the default delegation if not provided)'),
+  gatewayUrl: z.string().optional().describe('Custom gateway URL (optional, will use the default gateway if not provided)'),
 });
 
 export const uploadTool = {
@@ -36,10 +34,12 @@ export const uploadTool = {
   inputSchema: uploadInputSchema,
   handler: async (input: UploadInput, extra: any) => {
     try {
+      // load config from env
+      const config = loadConfig();
       const client = new StorachaClient({
-        privateKey: input.privateKey,
-        delegation: input.delegation,
-        gatewayUrl: input.gatewayUrl
+        privateKey: config.privateKey,
+        delegation: input.delegation || config.delegation,
+        gatewayUrl: input.gatewayUrl || config.gatewayUrl,
       });
       await client.initialize();
 
