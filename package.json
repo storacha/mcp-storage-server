@@ -3,16 +3,21 @@
   "version": "1.0.0",
   "description": "Storacha MCP Storage Server - Decentralized storage for AI systems",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "index.ts",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:stdio": "NODE_ENV=stdio node dist/index.js",
+    "start:http": "NODE_ENV=http node dist/index.js",
     "dev": "tsc-watch --onSuccess \"node dist/index.js\"",
     "clean": "rm -rf dist",
     "lint": "eslint src --ext .ts",
     "test": "vitest run",
     "test:watch": "vitest watch",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "inspect": "pnpm build && npx @modelcontextprotocol/inspector node dist/index.js",
+    "inspect:http": "pnpm build && NODE_ENV=http npx @modelcontextprotocol/inspector node dist/index.js",
+    "inspect:stdio": "pnpm build && NODE_ENV=stdio npx @modelcontextprotocol/inspector node dist/index.js"
   },
   "keywords": [
     "mcp",
@@ -26,10 +31,14 @@
   ],
   "author": "Storacha <dev@storacha.network>",
   "license": "MIT & Apache-2.0",
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "@ipld/car": "^5.4.0",
     "@modelcontextprotocol/sdk": "^1.7.0",
     "@ucanto/core": "^10.3.1",
+    "@ucanto/interface": "^10.2.0",
     "@ucanto/principal": "^9.0.2",
     "@web3-storage/w3up-client": "^17.2.0",
     "cors": "^2.8.5",
@@ -39,11 +48,14 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@modelcontextprotocol/inspector": "^0.7.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.13",
-    "typescript": "^5.8.2",
+    "ts-node": "^10.9.2",
     "tsc-watch": "^6.2.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
     "vitest": "^3.0.9"
   }
 }
