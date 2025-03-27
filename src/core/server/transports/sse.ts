@@ -7,6 +7,14 @@ import server from "../index.js";
 
 /**
  * SSE transport enables server-to-client streaming with HTTP POST requests for client-to-server communication.
+ * 
+ * Useful when you need:
+ * - Web browser access to the storage server
+ * - Real-time updates for file operations
+ * - Remote access from different machines
+ * - Integration with web applications
+ * - Scalable deployment options
+ *
  * See https://modelcontextprotocol.io/docs/concepts/transports#server-sent-events-sse for more information.
  * 
  * @param mcpServer - The MCP server instance
@@ -215,7 +223,7 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
   });
 
   // Set server timeout
-  httpServer.timeout = config.connectionTimeout;
+  httpServer.timeout = config.connectionTimeoutMs;
 
   return httpServer;
 }; 

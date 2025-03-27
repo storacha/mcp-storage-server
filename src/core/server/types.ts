@@ -4,7 +4,7 @@
  */
 export interface McpServerConfig {
   /** Connection timeout in milliseconds */
-  connectionTimeout: number;
+  connectionTimeoutMs: number;
   /** Transport mode */
   transportMode: 'stdio' | 'sse';
   /** Port number */

@@ -1,0 +1,91 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { startStdioTransport } from '../../src/core/server/transports/stdio.js';
+import { startSSETransport } from '../../src/core/server/transports/sse.js';
+import { McpServerConfig } from '../../src/core/server/types.js';
+import startMCPServer from '../../src/core/server/index.js';
+
+// Mock the transports
+vi.mock('../../src/core/server/transports/stdio.js', () => ({
+  startStdioTransport: vi.fn().mockResolvedValue({ mcpServer: {}, transport: {} })
+}));
+
+vi.mock('../../src/core/server/transports/sse.js', () => ({
+  startSSETransport: vi.fn().mockResolvedValue({})
+}));
+
+// Mock the McpServer class
+const mockTool = vi.fn();
+const mockConnect = vi.fn();
+
+vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => {
+  return {
+    McpServer: vi.fn().mockImplementation(() => ({
+      tool: mockTool,
+      connect: mockConnect
+    }))
+  };
+});
+
+describe('MCP Server', () => {
+  const mockConfig: McpServerConfig = {
+    port: 3001,
+    host: 'localhost',
+    connectionTimeoutMs: 30000,
+    transportMode: 'stdio'
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+  });
+
+  it('should initialize server with stdio transport', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    
+    await startMCPServer(mockConfig);
+
+    expect(startStdioTransport).toHaveBeenCalled();
+    expect(startSSETransport).not.toHaveBeenCalled();
+  });
+
+  it('should initialize server with SSE transport', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    
+    await startMCPServer({ ...mockConfig, transportMode: 'sse' });
+
+    expect(startSSETransport).toHaveBeenCalled();
+    expect(startStdioTransport).not.toHaveBeenCalled();
+  });
+
+  it('should register tools on initialization', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    
+    await startMCPServer(mockConfig);
+
+    expect(mockTool).toHaveBeenCalled();
+  });
+
+  it('should handle initialization errors', async () => {
+    const mockError = new Error('Initialization failed');
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    
+    (startStdioTransport as any).mockRejectedValueOnce(mockError);
+
+    await startMCPServer(mockConfig);
+
+    expect(console.error).toHaveBeenCalledWith(
+      'Failed to initialize server:',
+      mockError
+    );
+    expect(process.exit).toHaveBeenCalledWith(1);
+  });
+
+  it('should log server initialization', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    
+    await startMCPServer(mockConfig);
+
+    expect(console.error).toHaveBeenCalledWith('MCP Server initialized');
+    expect(console.error).toHaveBeenCalledWith('Server is ready to handle requests');
+  });
+}); 

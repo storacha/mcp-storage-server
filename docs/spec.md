@@ -46,6 +46,11 @@ The Storacha MCP server will support two primary operations in this first iterat
 2. **Retrieve**: Get files from Storacha by their Content ID (CID) through the Storacha HTTP trustless Gateway
 3. **Authentication & Authorization**: Optional authentication via bearer tokens
 
+
+#### MCP Did Key
+
+#### UCAN Auth
+
 #### Upload Operation
 
 - **Single File Support**: The upload operation can handle one in a single request

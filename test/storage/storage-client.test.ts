@@ -177,7 +177,7 @@ describe('StorachaClient', () => {
       const result = await client.retrieve(testCid);
 
       expect(global.fetch).toHaveBeenCalledWith(
-        `${testConfig.gatewayUrl}/ipfs/${testCid}`
+        new URL(`/ipfs/${testCid}`, testConfig.gatewayUrl)
       );
 
       expect(result).toEqual({

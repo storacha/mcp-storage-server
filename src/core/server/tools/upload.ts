@@ -55,7 +55,7 @@ export const uploadTool = {
       }
 
       const result = await client.upload(fileData, input.name || 'unnamed-file', {
-        type: input.type || 'application/octet-stream',
+        type: input.type || 'application/octet-stream', // remove this default type
         retries: input.retries || 3
       });
 
@@ -63,7 +63,14 @@ export const uploadTool = {
         content: [{
           type: "text" as const,
           text: JSON.stringify({
-            cid: result.cid,
+            cid: result.cid, // FIXME: use root
+            // FIXME: add paths
+            // paths: [
+            //   {
+            //     cid: result.cid,
+            //     path: input.name || 'unnamed-file'
+            //   }
+            // ],
             url: result.url,
             size: fileSize,
             type: input.type || 'application/octet-stream'

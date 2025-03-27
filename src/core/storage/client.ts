@@ -112,6 +112,7 @@ export class StorachaClient implements StorageClient {
       }
 
       const blob = new Blob([buffer], { type: options.type || 'application/octet-stream' });
+      // FIXME: use uploadDirectory
       const cid = await this.storage.uploadFile(blob, {
         signal: options.signal,
         retries: options.retries ?? 3
