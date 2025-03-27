@@ -7,6 +7,8 @@ A Model Context Protocol (MCP) server implementation for Storacha storage, enabl
 - **File Operations**
   - Upload files to Storacha's decentralized storage network
   - Retrieve files via Storacha's HTTP gateway
+- **Identity Management**
+  - Get the DID key of the Storacha agent
 - **Dual Transport Modes**
   - HTTP with Server-Sent Events (SSE) for real-time communication
   - Stdio transport for local integrations
@@ -93,6 +95,10 @@ const client = new McpClient({
   url: 'http://localhost:3000'
 });
 
+// Get the agent's DID key
+const identity = await client.invoke('identity');
+console.log('Agent DID:', JSON.parse(identity.content[0].text).did);
+
 // Upload a file with delegation from request
 const result = await client.invoke('upload', {
   file: fileBuffer,
@@ -178,7 +184,8 @@ pnpm start:stdio
 │   │       ├── tools/             # MCP tools implementation
 │   │       │   ├── index.ts       # Tool registration
 │   │       │   ├── upload.ts      # Upload tool
-│   │       │   └── retrieve.ts    # Retrieve tool
+│   │       │   ├── retrieve.ts    # Retrieve tool
+│   │       │   └── identity.ts    # Identity tool
 │   │       └── transports/        # Transport implementations
 │   │           ├── sse.ts         # SSE transport
 │   │           └── stdio.ts       # Stdio transport

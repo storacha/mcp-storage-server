@@ -40,12 +40,12 @@ flowchart LR
 
 ### Core Functionality
 
-The Storacha MCP server will support two primary operations in this first iteration:
+The Storacha MCP server will support three primary operations in this first iteration:
 
 1. **Upload**: Store files on Storacha's decentralized storage using the Storacha client
 2. **Retrieve**: Get files from Storacha by their Content ID (CID) through the Storacha HTTP trustless Gateway
-3. **Authentication & Authorization**: Optional authentication via bearer tokens
-
+3. **Identity**: Get the DID key of the Storacha agent loaded from the private key storage config
+4. **Authentication & Authorization**: Optional authentication via bearer tokens
 
 #### MCP Did Key
 
@@ -70,6 +70,14 @@ The Storacha MCP server will support two primary operations in this first iterat
 - **Format Conversion**: Files are returned in a format compatible with the MCP specification (base64 data URIs)
 - **Metadata Preservation**: Content types and other metadata are preserved and returned with the file
 - **Public Access**: No authentication required for retrieval, as CIDs are self-authenticating
+
+#### Identity Operation
+
+- **Agent DID Retrieval**: Returns the DID key of the Storacha agent loaded from the private key storage config
+- **No Parameters Required**: Simple operation that doesn't require any input parameters
+- **Error Handling**: Provides clear error messages for missing or invalid private keys
+- **Standard Response Format**: Returns the DID in a standardized JSON format
+- **Private Key Dependency**: Requires a valid private key to be configured in the storage config
 
 #### Authentication & Authorization
 
