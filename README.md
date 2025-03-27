@@ -63,7 +63,7 @@ A Model Context Protocol (MCP) server implementation for Storacha storage, enabl
 
     # Storage Client Configuration
     PRIVATE_KEY=                        # Required: The Storacha Agent private key that is authorized to upload files
-    DELEGATION=                         # Required: The base64 encoded delegation that authorizes the Agent owner of the private key to upload files
+    DELEGATION=                         # Optional: The base64 encoded delegation that authorizes the Agent owner of the private key to upload files
     GATEWAY_URL=https://storacha.link   # Optional: Custom gateway URL for file retrieval (default: https://storacha.link)
 
     # File Limits
@@ -93,7 +93,15 @@ const client = new McpClient({
   url: 'http://localhost:3000'
 });
 
-// Upload a file
+// Upload a file with delegation from request
+const result = await client.invoke('upload', {
+  file: fileBuffer,
+  name: 'example.txt',
+  type: 'text/plain',
+  delegation: 'your-delegation-proof' // Optional: Provide delegation in the request
+});
+
+// Upload a file using delegation from environment variable
 const result = await client.invoke('upload', {
   file: fileBuffer,
   name: 'example.txt',

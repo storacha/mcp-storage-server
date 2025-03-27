@@ -325,3 +325,25 @@ The Storacha MCP server can be deployed using various approaches:
 4. **NPM Package**: Distribute as an npm package for easy installation by developers
 
 > Note: Detailed deployment instructions can be found in the separate `distribution.md` document.
+
+## Security
+
+The Storacha MCP server implements these security measures:
+
+1. **Authentication**
+   - Private key authentication for storage operations
+   - Delegation proof validation for storage access
+   - Optional shared access token for API access
+
+2. **Delegation Requirements**
+   - A delegation proof is required for all upload operations
+   - Delegation can be provided in two ways:
+     - Via the `DELEGATION` environment variable (server-wide setting)
+     - Via the `delegation` parameter in the upload request (per-request setting)
+   - At least one delegation source must be provided
+   - Request-level delegation takes precedence over environment variable delegation
+
+3. **CORS Configuration**
+   - Configurable CORS settings for web access
+   - Preflight request handling
+   - Secure header management

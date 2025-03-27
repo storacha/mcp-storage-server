@@ -3,6 +3,7 @@ import { startStdioTransport } from '../../../src/core/server/transports/stdio.j
 import { startSSETransport } from '../../../src/core/server/transports/sse.js';
 import { McpServerConfig } from '../../../src/core/server/types.js';
 import startMCPServer from '../../../src/core/server/index.js';
+import { registerTools } from '../../../src/core/server/tools/index.js';
 
 // Mock the transports
 vi.mock('../../../src/core/server/transports/stdio.js', () => ({
@@ -11,6 +12,11 @@ vi.mock('../../../src/core/server/transports/stdio.js', () => ({
 
 vi.mock('../../../src/core/server/transports/sse.js', () => ({
   startSSETransport: vi.fn().mockResolvedValue({})
+}));
+
+// Mock the tools registration
+vi.mock('../../../src/core/server/tools/index.js', () => ({
+  registerTools: vi.fn()
 }));
 
 // Mock the McpServer class
@@ -44,6 +50,7 @@ describe('MCP Server', () => {
     
     await startMCPServer(mockConfig);
 
+    expect(registerTools).toHaveBeenCalled();
     expect(startStdioTransport).toHaveBeenCalled();
     expect(startSSETransport).not.toHaveBeenCalled();
   });
@@ -53,6 +60,7 @@ describe('MCP Server', () => {
     
     await startMCPServer({ ...mockConfig, transportMode: 'sse' });
 
+    expect(registerTools).toHaveBeenCalled();
     expect(startSSETransport).toHaveBeenCalled();
     expect(startStdioTransport).not.toHaveBeenCalled();
   });
@@ -62,7 +70,7 @@ describe('MCP Server', () => {
     
     await startMCPServer(mockConfig);
 
-    expect(mockTool).toHaveBeenCalled();
+    expect(registerTools).toHaveBeenCalled();
   });
 
   it('should handle initialization errors', async () => {

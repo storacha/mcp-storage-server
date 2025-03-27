@@ -25,11 +25,47 @@ const uploadInputSchema = z.object({
 export const uploadTool = {
   name: 'upload',
   description: 'Upload a file to the Storacha Network. The file can be provided as raw binary data or a base64 encoded string. Returns the CID and URL of the uploaded file.',
-  inputSchema: uploadInputSchema,
+  parameters: {
+    type: 'object',
+    properties: {
+      file: {
+        type: 'string',
+        description: 'The file to upload (base64 encoded or raw binary)'
+      },
+      name: {
+        type: 'string',
+        description: 'Name for the uploaded file'
+      },
+      type: {
+        type: 'string',
+        description: 'MIME type of the file'
+      },
+      retries: {
+        type: 'number',
+        description: 'Number of upload retries'
+      },
+      gatewayUrl: {
+        type: 'string',
+        description: 'Custom gateway URL'
+      },
+      delegation: {
+        type: 'string',
+        description: 'Delegation proof for storage access'
+      }
+    },
+    required: ['file']
+  },
+
   handler: async (input: UploadInput, extra: any) => {
     try {
       // load config from env
       const config = loadConfig();
+
+      // Validate that we have a delegation from either the request or config
+      if (!input.delegation && !config.delegation) {
+        throw new Error('Delegation is required. Please provide it either in the request or via the DELEGATION environment variable.');
+      }
+
       const client = new StorachaClient({
         privateKey: config.privateKey,
         delegation: input.delegation || config.delegation,
@@ -49,7 +85,7 @@ export const uploadTool = {
       }
 
       const result = await client.upload(fileData, input.name || 'unnamed-file', {
-        type: input.type || 'application/octet-stream', // remove this default type
+        type: input.type || 'application/octet-stream',
         retries: input.retries || 3
       });
 
@@ -57,14 +93,7 @@ export const uploadTool = {
         content: [{
           type: "text" as const,
           text: JSON.stringify({
-            cid: result.cid, // FIXME: use root
-            // FIXME: add paths
-            // paths: [
-            //   {
-            //     cid: result.cid,
-            //     path: input.name || 'unnamed-file'
-            //   }
-            // ],
+            cid: result.cid,
             url: result.url,
             size: fileSize,
             type: input.type || 'application/octet-stream'

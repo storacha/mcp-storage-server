@@ -39,9 +39,10 @@ describe('Storage Configuration', () => {
     expect(() => loadConfig()).toThrow('PRIVATE_KEY environment variable is required');
   });
 
-  it('should throw error when delegation is missing', () => {
+  it('should handle missing delegation', () => {
     delete process.env.DELEGATION;
-    expect(() => loadConfig()).toThrow('DELEGATION environment variable is required');
+    const config = loadConfig();
+    expect(config.delegation).toBeUndefined();
   });
 
   it('should handle empty string values as missing', () => {
@@ -50,7 +51,8 @@ describe('Storage Configuration', () => {
 
     process.env.PRIVATE_KEY = 'test-private-key';
     process.env.DELEGATION = '';
-    expect(() => loadConfig()).toThrow('DELEGATION environment variable is required');
+    const config = loadConfig();
+    expect(config.delegation).toBeUndefined();
   });
 
   it('should trim whitespace from environment variables', () => {

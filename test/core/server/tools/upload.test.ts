@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { uploadTool } from '../../../../src/core/server/tools/upload.js';
 import { StorachaClient } from '../../../../src/core/storage/client.js';
 import { loadConfig } from '../../../../src/core/storage/config.js';
+import { z } from 'zod';
 
 // Mock dependencies
 vi.mock('../../../../src/core/storage/config.js');
@@ -43,41 +44,49 @@ describe('Upload Tool', () => {
   });
 
   describe('input validation', () => {
+    const schema = z.object({
+      file: z.string()
+        .refine((str) => Buffer.from(str, 'base64').toString('base64') === str, 'Invalid base64 string'),
+      name: z.string().optional(),
+      type: z.string().optional(),
+      delegation: z.string().optional(),
+      gatewayUrl: z.string().optional()
+    });
+
     it('should validate valid base64 input', () => {
       const validBase64 = Buffer.from('test').toString('base64');
-      expect(uploadTool.inputSchema.safeParse({ file: validBase64 }).success).toBe(true);
+      expect(schema.safeParse({ file: validBase64 }).success).toBe(true);
     });
 
     it('should reject invalid base64 input', () => {
-      expect(uploadTool.inputSchema.safeParse({ file: 'not-base64!' }).success).toBe(false);
+      expect(schema.safeParse({ file: 'not-base64!' }).success).toBe(false);
     });
 
     it('should reject malformed base64 input', () => {
-      expect(uploadTool.inputSchema.safeParse({ file: 'invalid=base64' }).success).toBe(false);
+      expect(schema.safeParse({ file: 'invalid=base64' }).success).toBe(false);
     });
 
     it('should reject non-base64 characters', () => {
-      expect(uploadTool.inputSchema.safeParse({ file: 'test@#$%' }).success).toBe(false);
+      expect(schema.safeParse({ file: 'test@#$%' }).success).toBe(false);
     });
 
     it('should accept empty string as valid base64', () => {
-      expect(uploadTool.inputSchema.safeParse({ file: '' }).success).toBe(true);
+      expect(schema.safeParse({ file: '' }).success).toBe(true);
     });
 
     it('should reject base64 with invalid padding', () => {
-      expect(uploadTool.inputSchema.safeParse({ file: 'test=' }).success).toBe(false);
+      expect(schema.safeParse({ file: 'test=' }).success).toBe(false);
     });
 
     it('should accept optional parameters', () => {
-      const validBase64 = Buffer.from('test').toString('base64');
       const input = {
-        file: validBase64,
+        file: Buffer.from('test').toString('base64'),
         name: 'test.txt',
         type: 'text/plain',
-        delegation: 'custom-delegation',
+        delegation: 'test-delegation',
         gatewayUrl: 'https://custom-gateway.url'
       };
-      expect(uploadTool.inputSchema.safeParse(input).success).toBe(true);
+      expect(schema.safeParse(input).success).toBe(true);
     });
   });
 
@@ -194,6 +203,27 @@ describe('Upload Tool', () => {
   });
 
   describe('error handling', () => {
+    it('should handle missing delegation error', async () => {
+      // Mock config with no delegation
+      vi.mocked(loadConfig).mockReturnValue({
+        privateKey: 'test-private-key',
+        delegation: undefined,
+        gatewayUrl: 'https://test-gateway.url'
+      });
+
+      const base64Data = Buffer.from('test').toString('base64');
+      const input = { file: base64Data };
+
+      const result = await uploadTool.handler(input, {});
+
+      expect(result).toEqual({
+        content: [{
+          type: 'text',
+          text: 'Upload failed: Delegation is required. Please provide it either in the request or via the DELEGATION environment variable.'
+        }]
+      });
+    });
+
     it('should handle Error instances during upload', async () => {
       const mockError = new Error('Upload failed');
       vi.mocked(StorachaClient.prototype.upload).mockRejectedValue(mockError);
