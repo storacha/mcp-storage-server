@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { StorageConfig } from '../../src/core/storage/types.js';
 import { DEFAULT_GATEWAY_URL } from '../../src/core/storage/client.js';
+import * as Storage from '@web3-storage/w3up-client';
 
 
 // Mock dependencies
@@ -112,6 +113,82 @@ describe('StorachaClient', () => {
       await client.initialize();
       expect(client.isConnected()).toBe(true);
     });
+
+    it('should handle initialization errors', async () => {
+      const client = new StorachaClient(testConfig);
+      
+      // Mock Storage.create to throw an error
+      const mockError = new Error('Storage creation failed');
+      vi.mocked(Storage.create).mockRejectedValueOnce(mockError);
+      
+      await expect(client.initialize()).rejects.toThrow('Failed to initialize storage client: Storage creation failed');
+    });
+
+    it('should handle non-Error objects during initialization', async () => {
+      const client = new StorachaClient(testConfig);
+      
+      // Mock Storage.create to throw a non-Error object
+      vi.mocked(Storage.create).mockRejectedValueOnce('Unknown initialization error');
+      
+      await expect(client.initialize()).rejects.toThrow('Failed to initialize storage client: Unknown error');
+    });
+  });
+
+  describe('getStorage', () => {
+    it('should return null when not initialized', () => {
+      const client = new StorachaClient(testConfig);
+      expect(client.getStorage()).toBeNull();
+    });
+
+    it('should return storage client after initialization', async () => {
+      const client = new StorachaClient(testConfig);
+      await client.initialize();
+      const storage = client.getStorage();
+      expect(storage).toBeDefined();
+      expect(storage).not.toBeNull();
+      expect(storage?.uploadFile).toBeDefined();
+    });
+  });
+
+  describe('getConfig', () => {
+    it('should return the current config', () => {
+      const client = new StorachaClient(testConfig);
+      const config = client.getConfig();
+      expect(config).toEqual({
+        ...testConfig,
+        gatewayUrl: testConfig.gatewayUrl?.trim() || DEFAULT_GATEWAY_URL
+      });
+    });
+
+    it('should return config with default gateway URL when not provided', () => {
+      const clientWithoutGateway = new StorachaClient({
+        privateKey: testConfig.privateKey,
+        delegation: testConfig.delegation
+      });
+      const config = clientWithoutGateway.getConfig();
+      expect(config).toEqual({
+        privateKey: testConfig.privateKey,
+        delegation: testConfig.delegation,
+        gatewayUrl: DEFAULT_GATEWAY_URL
+      });
+    });
+  });
+
+  describe('getGatewayUrl', () => {
+    it('should throw error if gateway URL is not set', () => {
+      const client = new StorachaClient({
+        privateKey: testConfig.privateKey,
+        delegation: testConfig.delegation,
+      });
+      // Directly modify the config to simulate unset gateway URL
+      client['config'].gatewayUrl = undefined;
+      expect(() => client.getGatewayUrl()).toThrow('Gateway URL is not set');
+    });
+
+    it('should return configured gateway URL', () => {
+      const client = new StorachaClient(testConfig);
+      expect(client.getGatewayUrl()).toBe(testConfig.gatewayUrl);
+    });
   });
 
   describe('upload', () => {
@@ -150,6 +227,30 @@ describe('StorachaClient', () => {
       vi.mocked(client.getStorage()?.uploadFile).mockRejectedValueOnce(mockError);
       await expect(client.upload(testData, testFilename))
         .rejects.toThrow('Upload failed: Upload error');
+    });
+
+    it('should handle upload abort', async () => {
+      const abortController = new AbortController();
+      const client = new StorachaClient(testConfig);
+      await client.initialize();
+
+      // Abort the upload
+      abortController.abort();
+
+      await expect(client.upload(testData, testFilename, {
+        signal: abortController.signal
+      })).rejects.toThrow('Upload aborted');
+    });
+
+    it('should handle unknown error types during upload', async () => {
+      const client = new StorachaClient(testConfig);
+      await client.initialize();
+      
+      // Mock a non-Error object being thrown
+      vi.mocked(client.getStorage()?.uploadFile).mockRejectedValueOnce('Unknown error object');
+      
+      await expect(client.upload(testData, testFilename))
+        .rejects.toThrow('Upload failed: Unknown error');
     });
   });
 
@@ -215,6 +316,28 @@ describe('StorachaClient', () => {
 
       await expect(client.retrieve(testCid))
         .rejects.toThrow('Failed to retrieve file: Network error');
+    });
+
+    it('should handle unknown error types during retrieve', async () => {
+      const client = new StorachaClient(testConfig);
+      
+      // Mock fetch to throw a non-Error object
+      global.fetch = vi.fn().mockRejectedValue('Unknown error object');
+      
+      await expect(client.retrieve('test-cid'))
+        .rejects.toThrow('Failed to retrieve file: Unknown error');
+    });
+
+    it('should handle missing content-type header', async () => {
+      const client = new StorachaClient({});
+      const mockResponse = new Response(new ArrayBuffer(8), {
+        status: 200,
+        headers: new Headers() // No content-type header
+      });
+      global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+      const result = await client.retrieve('test-cid');
+      expect(result.type).toBe('application/octet-stream');
     });
   });
 }); 

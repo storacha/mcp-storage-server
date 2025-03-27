@@ -16,7 +16,7 @@ export class StorachaClient implements StorageClient {
   constructor(config: StorageConfig) {
     this.config = {
       ...config,
-      gatewayUrl: config.gatewayUrl || DEFAULT_GATEWAY_URL
+      gatewayUrl: config.gatewayUrl?.trim() || DEFAULT_GATEWAY_URL
     };
   }
 
@@ -81,7 +81,7 @@ export class StorachaClient implements StorageClient {
    * @throws Error if gateway URL is not set
    */
   getGatewayUrl(): string {
-    if (!this.config.gatewayUrl) {
+    if (!this.config.gatewayUrl?.trim()) {
       throw new Error('Gateway URL is not set');
     }
     return this.config.gatewayUrl;
@@ -102,6 +102,10 @@ export class StorachaClient implements StorageClient {
     }
 
     try {
+      if (options.signal?.aborted) {
+        throw new Error('Upload aborted');
+      }
+
       let buffer: Buffer;
 
       if (isValidBase64(data)) {
@@ -123,7 +127,7 @@ export class StorachaClient implements StorageClient {
         url: new URL(`/ipfs/${cid.toString()}`, this.getGatewayUrl()).toString()
       };
     } catch (error: unknown) {
-      if (options.signal?.aborted) {
+      if (error instanceof Error && error.name === 'AbortError' || options.signal?.aborted) {
         throw new Error('Upload aborted');
       }
       const message = error instanceof Error ? error.message : 'Unknown error';

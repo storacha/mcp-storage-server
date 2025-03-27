@@ -3,7 +3,6 @@ import cors from "cors";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpServerConfig } from "../types.js";
-import server from "../index.js";
 
 /**
  * SSE transport enables server-to-client streaming with HTTP POST requests for client-to-server communication.
@@ -115,7 +114,7 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (!server) {
+    if (!mcpServer) {
       console.error("Server not initialized yet");
       return res.status(503).json({
         jsonrpc: "2.0",
@@ -132,11 +131,8 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
       if (req.body?.params?.sessionId) {
         sessionId = req.body.params.sessionId;
         console.error(`Using session ID from request body: ${sessionId}`);
-      } else if (connections.size === 1) {
-        // If only one connection exists, use that
-        sessionId = Array.from(connections.keys())[0] || "";
-        console.error(`No sessionId provided, using the only active session: ${sessionId}`);
       }
+      
       if (!sessionId) {
         console.error("No session ID provided and multiple connections exist");
         return res.status(400).json({

@@ -14,13 +14,7 @@ type UploadInput = {
 const uploadInputSchema = z.object({
   file:
     z.string()
-      .refine((str) => {
-        try {
-          return Buffer.from(str, 'base64').toString('base64') === str;
-        } catch {
-          return false;
-        }
-      }, 'Invalid base64 string')
+      .refine((str) => Buffer.from(str, 'base64').toString('base64') === str, 'Invalid base64 string')
       .describe('The content of the file encoded as a base64 string'),
   name: z.string().optional().describe('Name for the uploaded file'),
   type: z.string().optional().describe('MIME type of the file'),

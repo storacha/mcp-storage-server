@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { startStdioTransport } from '../../src/core/server/transports/stdio.js';
-import { startSSETransport } from '../../src/core/server/transports/sse.js';
-import { McpServerConfig } from '../../src/core/server/types.js';
-import startMCPServer from '../../src/core/server/index.js';
+import { startStdioTransport } from '../../../src/core/server/transports/stdio.js';
+import { startSSETransport } from '../../../src/core/server/transports/sse.js';
+import { McpServerConfig } from '../../../src/core/server/types.js';
+import startMCPServer from '../../../src/core/server/index.js';
 
 // Mock the transports
-vi.mock('../../src/core/server/transports/stdio.js', () => ({
+vi.mock('../../../src/core/server/transports/stdio.js', () => ({
   startStdioTransport: vi.fn().mockResolvedValue({ mcpServer: {}, transport: {} })
 }));
 
-vi.mock('../../src/core/server/transports/sse.js', () => ({
+vi.mock('../../../src/core/server/transports/sse.js', () => ({
   startSSETransport: vi.fn().mockResolvedValue({})
 }));
 
