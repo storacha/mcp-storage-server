@@ -1,8 +1,8 @@
-import { StorageClient, StorageConfig, UploadResult, RetrieveResult, UploadOptions } from './types.js';
+import { StorageClient, StorageConfig, UploadResult, RetrieveResult, UploadOptions, UploadFile } from './types.js';
 import { Signer } from '@ucanto/principal/ed25519';
 import { StoreMemory } from '@web3-storage/w3up-client/stores/memory';
 import * as Storage from '@web3-storage/w3up-client';
-import { parseDelegation, isValidBase64 } from './utils.js';
+import { parseDelegation, detectMimeType } from './utils.js';
 export const DEFAULT_GATEWAY_URL = 'https://storacha.link';
 
 /**
@@ -88,15 +88,14 @@ export class StorachaClient implements StorageClient {
   }
 
   /**
-   * Upload a file to Storacha network
-   * The Storage Client needs to be initialized to upload a file.
+   * Upload files to Storacha network
+   * The Storage Client needs to be initialized to upload files.
    * 
-   * @param data - File data (base64 encoded string or binary data)
-   * @param filename - Original filename
+   * @param files - Array of files to upload
    * @param options - Upload options
-   * @returns The uploaded file's Content ID and URL
+   * @returns The uploaded files' Content ID and URL
    */
-  async upload(data: string, filename: string, options: UploadOptions = {}): Promise<UploadResult> {
+  async uploadFiles(files: UploadFile[], options: UploadOptions = {}): Promise<UploadResult> {
     if (!this.initialized || !this.storage) {
       throw new Error('Client not initialized');
     }
@@ -106,20 +105,18 @@ export class StorachaClient implements StorageClient {
         throw new Error('Upload aborted');
       }
 
-      let buffer: Buffer;
+      const fileObjects = files.map(file => {
+        const buffer = Buffer.from(file.content, 'base64');
+        return new File([buffer], file.name, { 
+          type: file.type || detectMimeType(file.name)
+        });
+      });
 
-      if (isValidBase64(data)) {
-        buffer = Buffer.from(data, 'base64');
-      } else {
-        // Treat as binary data
-        buffer = Buffer.from(data);
-      }
-
-      const blob = new Blob([buffer], { type: options.type || 'application/octet-stream' });
-      // FIXME: use uploadDirectory
-      const cid = await this.storage.uploadFile(blob, {
-        signal: options.signal,
-        retries: options.retries ?? 3
+      const cid = await this.storage.uploadDirectory(fileObjects, {
+        // If publishToIPFS is false, we don't provide a pieceHasher, so the content is not pinned to IPFS
+        ...(options.publishToIPFS === false ? { pieceHasher: undefined } : {}),
+        retries: options.retries ?? 3,
+        signal: options.signal
       });
 
       return {

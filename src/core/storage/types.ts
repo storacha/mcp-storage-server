@@ -11,6 +11,20 @@ export interface StorageConfig {
 }
 
 /**
+ * File to upload
+ */
+export interface UploadFile {
+  /** Name of the file */
+  name: string;
+  /** Content of the file (base64 encoded) */
+  content: string;
+  /** MIME type of the file */
+  type?: string;
+  /** Whether to publish the file to IPFS (default: false) */
+  publishToIPFS?: boolean;
+}
+
+/**
  * Upload options for storage operations
  */
 export interface UploadOptions {
@@ -18,8 +32,8 @@ export interface UploadOptions {
   signal?: AbortSignal;
   /** Number of retries for failed uploads */
   retries?: number;
-  /** MIME type of the file */
-  type?: string;
+  /** Whether to publish the file to IPFS (default: false) */
+  publishToIPFS?: boolean;
 }
 
 /**
@@ -53,12 +67,11 @@ export interface StorageClient {
   isConnected(): boolean;
   
   /**
-   * Upload a file to storage
-   * @param data - File data (base64 encoded string or binary data)
-   * @param filename - Original filename
+   * Upload files to storage
+   * @param files - Array of files to upload
    * @param options - Upload options
    */
-  upload(data: string, filename: string, options?: UploadOptions): Promise<UploadResult>;
+  uploadFiles(files: UploadFile[], options?: UploadOptions): Promise<UploadResult>;
   
   /**
    * Retrieve a file from storage

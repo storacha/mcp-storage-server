@@ -1,6 +1,7 @@
 import { CarReader } from '@ipld/car';
 import { importDAG } from '@ucanto/core/delegation';
 import { Delegation } from '@ucanto/interface';
+import { lookup } from 'mime-types';
 
 /**
  * Parses a delegation from a base64 encoded CAR file
@@ -16,17 +17,11 @@ export async function parseDelegation(data: string): Promise<Delegation> {
   return importDAG(blocks)
 }
 
-  /**
-   * Validate if a string is valid base64
-   * @param str - String to validate
-   */
-  export function isValidBase64(str: string): boolean {
-  if (str.length === 0 || str.length % 4 !== 0) {
-    return false;
-  }
-  try {
-    return btoa(atob(str)) === str;
-  } catch {
-    return false;
-  }
+/**
+ * Detect MIME type from filename
+ * @param filename - Name of the file
+ * @returns The detected MIME type or undefined if not detectable
+ */
+export function detectMimeType(filename: string): string | undefined {
+  return lookup(filename) || undefined;
 }

@@ -1,62 +1,25 @@
 import { z } from 'zod';
 import { StorachaClient } from '../../storage/client.js';
 import { loadConfig } from '../../storage/config.js';
-
-type UploadInput = {
-  file: Buffer | string;
-  name?: string;
-  type?: string;
-  retries?: number;
-  gatewayUrl?: string;
-  delegation?: string;
-};
+import { detectMimeType } from '../../storage/utils.js';
 
 const uploadInputSchema = z.object({
   file:
     z.string()
       .refine((str) => Buffer.from(str, 'base64').toString('base64') === str, 'Invalid base64 string')
       .describe('The content of the file encoded as a base64 string'),
-  name: z.string().optional().describe('Name for the uploaded file'),
-  type: z.string().optional().describe('MIME type of the file'),
-  delegation: z.string().optional().describe('Delegation proof (optional, will use the default delegation if not provided)'),
+  name: z.string().describe('Name for the uploaded file (must include file extension for MIME type detection)'),
+  type: z.string().optional().describe('MIME type of the file (optional, will be inferred from file extension if not provided)'),
+  delegation: z.string().optional().describe('Delegation proof (optional, will use the default server delegation if not provided)'),
   gatewayUrl: z.string().optional().describe('Custom gateway URL (optional, will use the default gateway if not provided)'),
+  publishToIPFS: z.boolean().optional().describe('Whether to publish the file to IPFS. When true, the file will be published to the IPFS network, making it publicly accessible. When false (default), the file will only be available within the Storacha network.'),
 });
 
 export const uploadTool = {
   name: 'upload',
-  description: 'Upload a file to the Storacha Network. The file can be provided as raw binary data or a base64 encoded string. Returns the CID and URL of the uploaded file.',
-  parameters: {
-    type: 'object',
-    properties: {
-      file: {
-        type: 'string',
-        description: 'The file to upload (base64 encoded or raw binary)'
-      },
-      name: {
-        type: 'string',
-        description: 'Name for the uploaded file'
-      },
-      type: {
-        type: 'string',
-        description: 'MIME type of the file'
-      },
-      retries: {
-        type: 'number',
-        description: 'Number of upload retries'
-      },
-      gatewayUrl: {
-        type: 'string',
-        description: 'Custom gateway URL'
-      },
-      delegation: {
-        type: 'string',
-        description: 'Delegation proof for storage access'
-      }
-    },
-    required: ['file']
-  },
-
-  handler: async (input: UploadInput, extra: any) => {
+  description: 'Upload a file to the Storacha Network. The file must be provided as a base64 encoded string. The file name should include the extension (e.g., "document.pdf") to enable automatic MIME type detection. The file can be optionally published to IPFS using the publishToIPFS parameter. When publishToIPFS is true, the file will be published to the IPFS network, making it publicly accessible. When false (default), the file will only be available within the Storacha network. Returns the CID and URL of the uploaded file.',
+  inputSchema: uploadInputSchema,
+  handler: async (input: z.infer<typeof uploadInputSchema>, extra: any) => {
     try {
       // load config from env
       const config = loadConfig();
@@ -73,20 +36,15 @@ export const uploadTool = {
       });
       await client.initialize();
 
-      let fileData: string;
-      let fileSize: number;
+      const type = input.type || detectMimeType(input.name);
 
-      if (Buffer.isBuffer(input.file)) {
-        fileData = input.file.toString('base64');
-        fileSize = input.file.length;
-      } else {
-        fileData = input.file;
-        fileSize = Buffer.from(input.file, 'base64').length;
-      }
-
-      const result = await client.upload(fileData, input.name || 'unnamed-file', {
-        type: input.type || 'application/octet-stream',
-        retries: input.retries || 3
+      const result = await client.uploadFiles([{
+        name: input.name,
+        content: input.file,
+        type,
+      }], {
+        retries: 3,
+        publishToIPFS: input.publishToIPFS
       });
 
       return {
@@ -95,8 +53,8 @@ export const uploadTool = {
           text: JSON.stringify({
             cid: result.cid,
             url: result.url,
-            size: fileSize,
-            type: input.type || 'application/octet-stream'
+            size: Buffer.from(input.file, 'base64').length,
+            type,
           })
         }]
       };

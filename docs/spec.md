@@ -57,7 +57,11 @@ The Storacha MCP server will support two primary operations in this first iterat
 - **Universal File Types**: Supports any file type, which is automatically converted to a blob by the Storacha client
 - **Content Addressing**: Returns Content IDs (CIDs) for uploaded files, enabling permanent, verifiable references
 - **Space Delegation**: Files are uploaded to the space authorized by the provided delegation in the server configuration
-- **Flexible Space Delegation**: Can accept delegation proof in request headers or body, with runtime delegations taking priority over server configuration
+- **Flexible Space Delegation**: Can accept delegation proof in the request body, with request-level delegation taking priority over server configuration. If no delegation is provided in the request, the server will use the delegation from the DELEGATION environment variable. If no delegation is provided, then the upload operation will fail.
+- **IPFS Publishing**: Optional publishing to IPFS network
+  - When `publishToIPFS` is `true`, content is published to the IPFS network, making it publicly accessible
+  - When `publishToIPFS` is `false` (default), content remains private within the Storacha network
+  - Content is always accessible through its CID, but IPFS publishing affects its availability in the broader IPFS network
 
 #### Retrieve Operation
 

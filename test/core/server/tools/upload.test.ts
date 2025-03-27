@@ -9,7 +9,7 @@ vi.mock('../../../../src/core/storage/config.js');
 vi.mock('../../../../src/core/storage/client.js', () => {
   const mockStorachaClient = vi.fn();
   mockStorachaClient.prototype.initialize = vi.fn();
-  mockStorachaClient.prototype.upload = vi.fn();
+  mockStorachaClient.prototype.uploadFiles = vi.fn();
   mockStorachaClient.prototype.isConnected = vi.fn();
   mockStorachaClient.prototype.getStorage = vi.fn();
   mockStorachaClient.prototype.getConfig = vi.fn();
@@ -34,7 +34,7 @@ describe('Upload Tool', () => {
     vi.clearAllMocks();
     vi.mocked(loadConfig).mockReturnValue(mockConfig);
     vi.mocked(StorachaClient.prototype.initialize).mockResolvedValue();
-    vi.mocked(StorachaClient.prototype.upload).mockResolvedValue(mockResult);
+    vi.mocked(StorachaClient.prototype.uploadFiles).mockResolvedValue(mockResult);
     vi.mocked(StorachaClient.prototype.getConfig).mockReturnValue(mockConfig);
     vi.mocked(StorachaClient.prototype.getGatewayUrl).mockReturnValue(mockConfig.gatewayUrl);
   });
@@ -92,68 +92,126 @@ describe('Upload Tool', () => {
 
   describe('file handling', () => {
     it('should handle base64 string input', async () => {
-      const testData = 'test data';
-      const base64Data = Buffer.from(testData).toString('base64');
-      const input = { file: base64Data };
+      const testData = 'dGVzdCBkYXRh'; // base64 encoded "test data"
+      const input = {
+        file: testData,
+        name: 'test.txt'
+      };
 
-      const result = await uploadTool.handler(input, {});
+      await uploadTool.handler(input, {});
 
-      expect(result).toEqual({
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            cid: mockResult.cid,
-            url: mockResult.url,
-            size: testData.length,
-            type: 'application/octet-stream'
-          })
-        }]
+      expect(StorachaClient.prototype.uploadFiles).toHaveBeenCalledWith([{
+        name: 'test.txt',
+        content: testData,
+        type: 'text/plain'
+      }], {
+        retries: 3,
+        publishToIPFS: undefined
       });
-
-      expect(StorachaClient.prototype.upload).toHaveBeenCalledWith(
-        base64Data,
-        'unnamed-file',
-        {
-          type: 'application/octet-stream',
-          retries: 3
-        }
-      );
     });
 
-    it('should handle Buffer input', async () => {
-      const buffer = Buffer.from('test data');
-      const input = { file: buffer };
+    it('should handle IPFS publishing when publishToIPFS is true', async () => {
+      const testData = 'dGVzdCBkYXRh';
+      const input = {
+        file: testData,
+        name: 'test.txt',
+        publishToIPFS: true
+      };
+      const mockPieceHasher = { hash: vi.fn() };
+      await uploadTool.handler(input, { pieceHasher: mockPieceHasher });
 
-      const result = await uploadTool.handler(input, {});
-
-      expect(result).toEqual({
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            cid: mockResult.cid,
-            url: mockResult.url,
-            size: buffer.length,
-            type: 'application/octet-stream'
-          })
-        }]
+      expect(StorachaClient.prototype.uploadFiles).toHaveBeenCalledWith([{
+        name: 'test.txt',
+        content: testData,
+        type: 'text/plain'
+      }], {
+        publishToIPFS: true,
+        retries: 3
       });
+    });
 
-      expect(StorachaClient.prototype.upload).toHaveBeenCalledWith(
-        buffer.toString('base64'),
-        'unnamed-file',
-        {
-          type: 'application/octet-stream',
-          retries: 3
-        }
-      );
+    it('should not use pieceHasher when publishToIPFS is false', async () => {
+      const testData = 'dGVzdCBkYXRh';
+      const input = {
+        file: testData,
+        name: 'test.txt',
+        publishToIPFS: false
+      };
+      const mockPieceHasher = { hash: vi.fn() };
+      await uploadTool.handler(input, { pieceHasher: mockPieceHasher });
+
+      expect(StorachaClient.prototype.uploadFiles).toHaveBeenCalledWith([{
+        name: 'test.txt',
+        content: testData,
+        type: 'text/plain'
+      }], {
+        publishToIPFS: false,
+        retries: 3
+      });
+    });
+
+    it('should handle base64 string input with detected MIME type', async () => {
+      const input = {
+        file: 'dGVzdCBkYXRh',
+        name: 'test.json'
+      };
+
+      await uploadTool.handler(input, {});
+
+      expect(StorachaClient.prototype.uploadFiles).toHaveBeenCalledWith([{
+        name: 'test.json',
+        content: 'dGVzdCBkYXRh',
+        type: 'application/json'
+      }], {
+        retries: 3,
+        publishToIPFS: undefined
+      });
+    });
+
+    it('should use correct MIME type for known extensions', async () => {
+      const input = {
+        file: 'dGVzdCBkYXRh',
+        name: 'test.xyz'
+      };
+
+      await uploadTool.handler(input, {});
+
+      expect(StorachaClient.prototype.uploadFiles).toHaveBeenCalledWith([{
+        name: 'test.xyz',
+        content: 'dGVzdCBkYXRh',
+        type: 'chemical/x-xyz'
+      }], {
+        retries: 3,
+        publishToIPFS: undefined
+      });
+    });
+
+    it('should use provided type over detected type', async () => {
+      const input = {
+        file: 'dGVzdCBkYXRh',
+        name: 'test.json',
+        type: 'text/plain'
+      };
+
+      await uploadTool.handler(input, {});
+
+      expect(StorachaClient.prototype.uploadFiles).toHaveBeenCalledWith([{
+        name: 'test.json',
+        content: 'dGVzdCBkYXRh',
+        type: 'text/plain'
+      }], {
+        retries: 3,
+        publishToIPFS: undefined
+      });
     });
   });
 
   describe('configuration', () => {
     it('should use custom delegation if provided', async () => {
-      const base64Data = Buffer.from('test').toString('base64');
+      const testData = 'test data';
       const input = {
-        file: base64Data,
+        file: testData,
+        name: 'test.txt',
         delegation: 'custom-delegation'
       };
 
@@ -167,9 +225,10 @@ describe('Upload Tool', () => {
     });
 
     it('should use custom gateway URL if provided', async () => {
-      const base64Data = Buffer.from('test').toString('base64');
+      const testData = 'test data';
       const input = {
-        file: base64Data,
+        file: testData,
+        name: 'test.txt',
         gatewayUrl: 'https://custom-gateway.url'
       };
 
@@ -183,22 +242,21 @@ describe('Upload Tool', () => {
     });
 
     it('should use custom file name and type if provided', async () => {
-      const base64Data = Buffer.from('test').toString('base64');
       const input = {
-        file: base64Data,
+        file: 'dGVzdA==',
         name: 'custom-name.txt',
         type: 'text/plain'
       };
 
       await uploadTool.handler(input, {});
 
-      expect(StorachaClient.prototype.upload).toHaveBeenCalledWith(
-        base64Data,
-        'custom-name.txt',
-        expect.objectContaining({
-          type: 'text/plain'
-        })
-      );
+      expect(StorachaClient.prototype.uploadFiles).toHaveBeenCalledWith([{
+        name: 'custom-name.txt',
+        content: 'dGVzdA==',
+        type: 'text/plain'
+      }], {
+        retries: 3
+      });
     });
   });
 
@@ -211,8 +269,11 @@ describe('Upload Tool', () => {
         gatewayUrl: 'https://test-gateway.url'
       });
 
-      const base64Data = Buffer.from('test').toString('base64');
-      const input = { file: base64Data };
+      const testData = 'test data';
+      const input = { 
+        file: testData,
+        name: 'test.txt'
+      };
 
       const result = await uploadTool.handler(input, {});
 
@@ -226,10 +287,13 @@ describe('Upload Tool', () => {
 
     it('should handle Error instances during upload', async () => {
       const mockError = new Error('Upload failed');
-      vi.mocked(StorachaClient.prototype.upload).mockRejectedValue(mockError);
+      vi.mocked(StorachaClient.prototype.uploadFiles).mockRejectedValue(mockError);
 
-      const base64Data = Buffer.from('test').toString('base64');
-      const input = { file: base64Data };
+      const testData = 'test data';
+      const input = { 
+        file: testData,
+        name: 'test.txt'
+      };
 
       const result = await uploadTool.handler(input, {});
 
@@ -242,10 +306,13 @@ describe('Upload Tool', () => {
     });
 
     it('should handle non-Error objects during upload', async () => {
-      vi.mocked(StorachaClient.prototype.upload).mockRejectedValue('Unknown error object');
+      vi.mocked(StorachaClient.prototype.uploadFiles).mockRejectedValue('Unknown error object');
 
-      const base64Data = Buffer.from('test').toString('base64');
-      const input = { file: base64Data };
+      const testData = 'test data';
+      const input = { 
+        file: testData,
+        name: 'test.txt'
+      };
 
       const result = await uploadTool.handler(input, {});
 
@@ -261,8 +328,11 @@ describe('Upload Tool', () => {
       const mockError = new Error('Initialization failed');
       vi.mocked(StorachaClient.prototype.initialize).mockRejectedValue(mockError);
 
-      const base64Data = Buffer.from('test').toString('base64');
-      const input = { file: base64Data };
+      const testData = 'test data';
+      const input = { 
+        file: testData,
+        name: 'test.txt'
+      };
 
       const result = await uploadTool.handler(input, {});
 

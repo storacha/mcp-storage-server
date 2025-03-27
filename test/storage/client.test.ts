@@ -12,7 +12,7 @@ vi.mock('@web3-storage/w3up-client', () => {
       did: () => 'did:mock:space'
     }),
     setCurrentSpace: vi.fn().mockResolvedValue(undefined),
-    uploadFile: vi.fn().mockResolvedValue({ toString: () => 'test-cid' }),
+    uploadDirectory: vi.fn().mockResolvedValue({ toString: () => 'test-cid' }),
   };
 
   return {
@@ -146,7 +146,7 @@ describe('StorachaClient', () => {
       const storage = client.getStorage();
       expect(storage).toBeDefined();
       expect(storage).not.toBeNull();
-      expect(storage?.uploadFile).toBeDefined();
+      expect(storage?.uploadDirectory).toBeDefined();
     });
   });
 
@@ -202,55 +202,102 @@ describe('StorachaClient', () => {
     });
 
     it('should upload file successfully with base64 data', async () => {
-      const result = await client.upload(testData, testFilename);
+      const result = await client.uploadFiles([{
+        name: testFilename,
+        content: testData,
+        type: 'text/plain'
+      }]);
       expect(result.cid).toBe('test-cid');
     });
 
     it('should throw error if client not initialized', async () => {
       const uninitializedClient = new StorachaClient(testConfig);
-      await expect(uninitializedClient.upload(testData, testFilename))
-        .rejects.toThrow('Client not initialized');
+      await expect(uninitializedClient.uploadFiles([{
+        name: testFilename,
+        content: testData,
+        type: 'text/plain'
+      }])).rejects.toThrow('Client not initialized');
     });
 
     it('should handle non-base64 data as binary', async () => {
-      const client = new StorachaClient(testConfig);
-      await client.initialize();
       const binaryData = 'Hello, World!';
-      const result = await client.upload(binaryData, testFilename);
+      const result = await client.uploadFiles([{
+        name: testFilename,
+        content: binaryData,
+        type: 'application/octet-stream'
+      }]);
       expect(result.cid).toBe('test-cid');
     });
 
     it('should handle upload errors', async () => {
-      const client = new StorachaClient(testConfig);
-      await client.initialize();
       const mockError = new Error('Upload error');
-      vi.mocked(client.getStorage()?.uploadFile).mockRejectedValueOnce(mockError);
-      await expect(client.upload(testData, testFilename))
-        .rejects.toThrow('Upload failed: Upload error');
+      vi.mocked(client.getStorage()?.uploadDirectory).mockRejectedValueOnce(mockError);
+      await expect(client.uploadFiles([{
+        name: testFilename,
+        content: testData,
+        type: 'text/plain'
+      }])).rejects.toThrow('Upload failed: Upload error');
     });
 
     it('should handle upload abort', async () => {
       const abortController = new AbortController();
-      const client = new StorachaClient(testConfig);
-      await client.initialize();
-
       // Abort the upload
       abortController.abort();
 
-      await expect(client.upload(testData, testFilename, {
+      await expect(client.uploadFiles([{
+        name: testFilename,
+        content: testData,
+        type: 'text/plain'
+      }], {
         signal: abortController.signal
       })).rejects.toThrow('Upload aborted');
     });
 
     it('should handle unknown error types during upload', async () => {
-      const client = new StorachaClient(testConfig);
-      await client.initialize();
-      
       // Mock a non-Error object being thrown
-      vi.mocked(client.getStorage()?.uploadFile).mockRejectedValueOnce('Unknown error object');
+      vi.mocked(client.getStorage()?.uploadDirectory).mockRejectedValueOnce('Unknown error object');
       
-      await expect(client.upload(testData, testFilename))
-        .rejects.toThrow('Upload failed: Unknown error');
+      await expect(client.uploadFiles([{
+        name: testFilename,
+        content: testData,
+        type: 'text/plain'
+      }])).rejects.toThrow('Upload failed: Unknown error');
+    });
+
+    it('should handle upload without IPFS publishing', async () => {
+      const result = await client.uploadFiles([{
+        name: testFilename,
+        content: testData,
+        type: 'text/plain'
+      }], {
+        publishToIPFS: false
+      });
+
+      expect(result.cid).toBe('test-cid');
+      expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
+        [expect.any(File)],
+        {
+          retries: 3,
+          pieceHasher: undefined,
+          signal: undefined
+        }
+      );
+    });
+
+    it('should use detectMimeType when file type is not provided', async () => {
+      const result = await client.uploadFiles([{
+        name: 'test.txt',
+        content: testData
+      }]);
+
+      expect(result.cid).toBe('test-cid');
+      expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
+        [expect.any(File)],
+        {
+          retries: 3,
+          signal: undefined
+        }
+      );
     });
   });
 

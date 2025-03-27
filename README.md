@@ -98,7 +98,8 @@ const result = await client.invoke('upload', {
   file: fileBuffer,
   name: 'example.txt',
   type: 'text/plain',
-  delegation: 'your-delegation-proof' // Optional: Provide delegation in the request
+  delegation: 'your-delegation-proof', // Optional: Provide delegation in the request
+  publishToIPFS: true // Optional: Publish content to IPFS network (default: false)
 });
 
 // Upload a file using delegation from environment variable
@@ -109,6 +110,31 @@ const result = await client.invoke('upload', {
 });
 ```
 
+## IPFS Publishing
+
+The Storacha MCP Storage Server provides flexibility in how content is published and accessed:
+
+- **Private Storage (Default)**: When `publishToIPFS` is set to `false` (default), content is stored only within the Storacha network. The content is accessible through its CID but remains private to the Storacha network.
+  
+- **Public IPFS Storage**: When `publishToIPFS` is set to `true`, the content is published to the IPFS network, making it publicly accessible to anyone with the CID. This is useful for:
+  - Sharing content with the broader IPFS network
+  - Ensuring content persistence across multiple IPFS nodes
+  - Making content available through any IPFS gateway
+
+Example of uploading with IPFS publishing:
+```typescript
+// Upload and publish to IPFS
+const result = await client.invoke('upload', {
+  file: fileBuffer,
+  name: 'public-document.pdf',
+  type: 'application/pdf',
+  publishToIPFS: true
+});
+
+// The content will be available through both Storacha and IPFS networks
+console.log('Content CID:', result.cid);
+console.log('Storacha URL:', result.url);
+```
 
 ## Testing with MCP Inspector
 
