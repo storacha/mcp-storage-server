@@ -6,7 +6,11 @@ import { StorageConfig } from 'src/core/storage/types.js';
 const uploadInputSchema = z.object({
   file:
     z.string()
-      .refine((str) => Buffer.from(str, 'base64').toString('base64') === str, 'Invalid base64 string')
+      .refine((str) => {
+        // Remove any potential data URL prefix
+        const cleanStr = str.replace(/^data:.*?;base64,/, '');
+        return Buffer.from(cleanStr, 'base64').toString('base64') === cleanStr;
+      }, 'Invalid base64 string')
       .describe('The content of the file encoded as a base64 string'),
   name: z.string().describe('Name for the uploaded file (must include file extension for MIME type detection)'),
   type: z.string().optional().describe('MIME type of the file (optional, will be inferred from file extension if not provided)'),
