@@ -4,22 +4,12 @@ import { retrieveTool } from "./retrieve.js";
 import { identityTool } from "./identity.js";
 
 export const registerTools = (server: McpServer) => {
-  server.tool(
-    uploadTool.name,
-    uploadTool.description,
-    uploadTool.inputSchema.shape,
-    uploadTool.handler
-  );
-  server.tool(
-    retrieveTool.name,
-    retrieveTool.description,
-    retrieveTool.inputSchema.shape,
-    retrieveTool.handler
-  );
-  server.tool(
-    identityTool.name,
-    identityTool.description,
-    identityTool.inputSchema.shape,
-    identityTool.handler
-  );
+  for (const tool of [uploadTool, retrieveTool, identityTool]) {
+    server.tool(
+      tool.name,
+      tool.description,
+      tool.inputSchema.shape,
+      tool.handler,
+    );
+  }
 };

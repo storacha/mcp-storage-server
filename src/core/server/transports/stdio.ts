@@ -39,7 +39,6 @@ export const startStdioTransport = async (mcpServer: McpServer, config: McpServe
     
     return { mcpServer, transport };
   } catch (error) {
-    console.error("Error starting stdio server:", error);
-    throw error;
+    throw new Error("Starting stdio server: ${error.message}", { cause: error.cause });
   }
 }; 

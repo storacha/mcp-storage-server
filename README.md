@@ -65,7 +65,7 @@ A Model Context Protocol (MCP) server implementation for Storacha storage, enabl
 
     # Storage Client Configuration
     PRIVATE_KEY=                        # Required: The Storacha Agent private key that is authorized to upload files
-    DELEGATION=                         # Optional: The base64 encoded delegation that authorizes the Agent owner of the private key to upload files
+    DELEGATION=                         # Optional: The base64 encoded delegation that authorizes the Agent owner of the private key to upload files. If not set, MUST be provided for each upload request.
     GATEWAY_URL=https://storacha.link   # Optional: Custom gateway URL for file retrieval (default: https://storacha.link)
 
     # File Limits
@@ -217,7 +217,7 @@ pnpm test
 
 ## License
 
-MIT and/or Apache 2 License
+MIT or Apache 2 License
 
 ## Support
 

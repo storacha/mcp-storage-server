@@ -1,5 +1,5 @@
 {
-  "name": "mcp-storage-server",
+  "name": "@storacha/mcp-storage-server",
   "version": "1.0.0",
   "description": "Storacha MCP Storage Server - Decentralized storage for AI systems",
   "type": "module",
@@ -30,7 +30,7 @@
     "ai"
   ],
   "author": "Storacha <dev@storacha.network>",
-  "license": "MIT & Apache-2.0",
+  "license": "MIT OR Apache-2.0",
   "files": [
     "dist"
   ],

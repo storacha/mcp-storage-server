@@ -54,6 +54,7 @@ export const uploadTool = {
         }]
       };
     } catch (error) {
+      console.error("Error: handling upload:", error);
       return {
         content: [{
           type: "text" as const,

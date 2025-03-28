@@ -48,7 +48,7 @@ export class StorachaClient implements StorageClient {
       this.initialized = true;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to initialize storage client: ${message}`);
+      throw new Error(`Failed to initialize storage client: ${message}`, { cause: error });
     }
   }
 
@@ -121,11 +121,11 @@ export class StorachaClient implements StorageClient {
 
       return {
         root: root.toString(),
-        rootURL: new URL(`/ipfs/${root.toString()}`, this.getGatewayUrl()).toString(),
+        rootURL: new URL(`/ipfs/${root}`, this.getGatewayUrl()).toString(),
         files: files.map(file => ({
           name: file.name,
           type: file.type,
-          url: new URL(`/ipfs/${root.toString()}/${file.name}`, this.getGatewayUrl()).toString(),
+          url: new URL(`/ipfs/${root}/${file.name}`, this.getGatewayUrl()).toString(),
         }))
       };
     } catch (error: unknown) {

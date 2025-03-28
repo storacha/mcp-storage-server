@@ -17,7 +17,7 @@ export const loadConfig = (): McpServerConfig => {
   }
 
   if (transportMode !== 'stdio' && transportMode !== 'sse') {
-    throw new Error('Invalid transport mode');
+    throw new Error('Unsupported transport mode');
   }
 
   if (isNaN(maxFileSize) || maxFileSize < 0) {

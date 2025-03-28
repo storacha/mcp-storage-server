@@ -27,7 +27,7 @@ async function startMCPServer(config: McpServerConfig) {
     // registerPrompts(server);
 
     // Log server information
-    console.error(`MCP Server initialized`);
+    console.error("MCP Server initialized");
     console.error("Server is ready to handle requests");
 
     
@@ -39,8 +39,7 @@ async function startMCPServer(config: McpServerConfig) {
 
     return server;
   } catch (error) {
-    console.error("Failed to initialize server:", error);
-    process.exit(1);
+    throw new Error(`Failed to initialize storage server: ${error.message}`, { cause: error });
   }
 }
 

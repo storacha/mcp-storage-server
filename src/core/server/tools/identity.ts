@@ -20,10 +20,11 @@ export const identityTool = {
       return {
         content: [{
           type: "text" as const,
-          text: JSON.stringify({ did })
+          text: JSON.stringify({ id: did })
         }]
       };
     } catch (error) {
+      console.error("Error: handling identity:", error);
       return {
         content: [{
           type: "text" as const,

@@ -34,6 +34,7 @@ export const retrieveTool = {
         }]
       };
     } catch (error) {
+      console.error("Error: handling retrieve:", error);
       return {
         content: [{
           type: "text" as const,
