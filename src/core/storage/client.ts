@@ -138,31 +138,30 @@ export class StorachaClient implements StorageClient {
   }
 
   /**
-   * Retrieve a file from Storacha network
-   * The Storage Client does not need to be initialized to retrieve a file because it routes requests to the gateway,
-   * and doesn't need to access the storage directly.
-   * 
-   * @param cid - Content ID to retrieve
-   * @returns The retrieved file data as a base64 encoded string
+   * Retrieve a file from the gateway
+   * @param root - Root CID of the directory containing the file
+   * @returns The file data and metadata
    */
-  async retrieve(cid: string): Promise<RetrieveResult> {
+  async retrieve(root: string): Promise<RetrieveResult> {
     try {
-      const response = await fetch(new URL(`/ipfs/${cid}`, this.getGatewayUrl()));
+      const response = await fetch(new URL(`/ipfs/${root}`, this.getGatewayUrl()));
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status} ${response.statusText}`);
       }
 
       const buffer = await response.arrayBuffer();
       const base64Data = Buffer.from(buffer).toString('base64');
-      const contentType = response.headers.get('content-type') || 'application/octet-stream';
+      const contentType = response.headers.get('content-type');
 
       return {
         data: base64Data,
-        type: contentType
+        type: contentType || undefined
       };
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to retrieve file: ${message}`);
+      if (error instanceof Error) {
+        throw new Error(`Failed to retrieve file: ${error.message}`, { cause: error });
+      }
+      throw new Error('Failed to retrieve file: Unknown error', { cause: error });
     }
   }
 

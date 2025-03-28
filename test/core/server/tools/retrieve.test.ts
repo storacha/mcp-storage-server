@@ -30,7 +30,7 @@ describe('Retrieve Tool', () => {
     const mockRetrieve = vi.fn().mockResolvedValue(mockResult);
     vi.spyOn(StorachaClient.prototype, 'retrieve').mockImplementation(mockRetrieve);
 
-    const input = { cid: 'test-cid' };
+    const input = { root: 'test-cid' };
     const result = await retrieveTool.handler(input, {});
 
     expect(result).toEqual({
@@ -40,14 +40,14 @@ describe('Retrieve Tool', () => {
       }]
     });
     expect(loadConfig).toHaveBeenCalled();
-    expect(mockRetrieve).toHaveBeenCalledWith(input.cid);
+    expect(mockRetrieve).toHaveBeenCalledWith(input.root);
   });
 
   it('should handle Error instances during retrieval', async () => {
     const mockError = new Error('Test error');
     vi.spyOn(StorachaClient.prototype, 'retrieve').mockRejectedValue(mockError);
 
-    const input = { cid: 'test-cid' };
+    const input = { root: 'test-cid' };
     const result = await retrieveTool.handler(input, {});
 
     expect(result).toEqual({
@@ -61,7 +61,7 @@ describe('Retrieve Tool', () => {
   it('should handle non-Error objects during retrieval', async () => {
     vi.spyOn(StorachaClient.prototype, 'retrieve').mockRejectedValue('Unknown error object');
 
-    const input = { cid: 'test-cid' };
+    const input = { root: 'test-cid' };
     const result = await retrieveTool.handler(input, {});
 
     expect(result).toEqual({
@@ -73,8 +73,8 @@ describe('Retrieve Tool', () => {
   });
 
   it('should validate input schema', () => {
-    expect(retrieveTool.inputSchema.safeParse({ cid: 'test-cid' }).success).toBe(true);
+    expect(retrieveTool.inputSchema.safeParse({ root: 'test-cid' }).success).toBe(true);
     expect(retrieveTool.inputSchema.safeParse({}).success).toBe(false);
-    expect(retrieveTool.inputSchema.safeParse({ cid: 123 }).success).toBe(false);
+    expect(retrieveTool.inputSchema.safeParse({ root: 123 }).success).toBe(false);
   });
 }); 

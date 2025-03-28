@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DEFAULT_GATEWAY_URL } from '../../src/core/storage/config.js';
 import { StorachaClient } from '../../src/core/storage/client.js';
-import { UploadFile, UploadResult, RetrieveResult } from '../../src/core/storage/types.js';
+import { UploadFile } from '../../src/core/storage/types.js';
 
 
 // Mock dependencies
@@ -388,16 +388,23 @@ describe('StorachaClient', () => {
     });
 
     it('should handle missing content-type header', async () => {
+      const client = new StorachaClient({
+        privateKey: 'test-key',
+        delegation: 'test-delegation',
+        gatewayUrl: 'https://test.gateway'
+      });
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        arrayBuffer: async () => new TextEncoder().encode('test-data').buffer,
-        headers: new Headers() // No content-type header
+        arrayBuffer: () => Promise.resolve(Buffer.from('test-data')),
+        headers: {
+          get: () => null
+        }
       });
 
       const result = await client.retrieve('test-cid');
       expect(result).toEqual({
         data: Buffer.from('test-data').toString('base64'),
-        type: 'application/octet-stream'
+        type: undefined
       });
     });
   });

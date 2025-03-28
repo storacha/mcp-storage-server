@@ -62,7 +62,7 @@ export interface RetrieveResult {
   /** Base64 encoded file data */
   data: string;
   /** MIME type of the file */
-  type: string;
+  type?: string;
 }
 
 /**
@@ -84,7 +84,7 @@ export interface StorageClient {
   
   /**
    * Retrieve a file from storage
-   * @param cid - Content ID to retrieve
+   * @param root - Root CID of the directory containing the file
    */
-  retrieve(cid: string): Promise<RetrieveResult>;
+  retrieve(root: string): Promise<RetrieveResult>;
 } 

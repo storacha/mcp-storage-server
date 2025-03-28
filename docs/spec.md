@@ -43,7 +43,7 @@ flowchart LR
 The Storacha MCP server will support three primary operations in this first iteration:
 
 1. **Upload**: Store files on Storacha's decentralized storage using the Storacha client
-2. **Retrieve**: Get files from Storacha by their Content ID (CID) through the Storacha HTTP trustless Gateway
+2. **Retrieve**: Get files from Storacha by their root CID through the Storacha HTTP trustless Gateway
 3. **Identity**: Get the DID key of the Storacha agent loaded from the private key storage config
 4. **Authentication & Authorization**: Optional authentication via bearer tokens
 
@@ -55,21 +55,21 @@ The Storacha MCP server will support three primary operations in this first iter
 
 - **Single File Support**: The upload operation can handle one in a single request
 - **Universal File Types**: Supports any file type, which is automatically converted to a blob by the Storacha client
-- **Content Addressing**: Returns Content IDs (CIDs) for uploaded files, enabling permanent, verifiable references
+- **Content Addressing**: Returns root CIDs for uploaded files, enabling permanent, verifiable references
 - **Space Delegation**: Files are uploaded to the space authorized by the provided delegation in the server configuration
 - **Flexible Space Delegation**: Can accept delegation proof in the request body, with request-level delegation taking priority over server configuration. If no delegation is provided in the request, the server will use the delegation from the DELEGATION environment variable. If no delegation is provided, then the upload operation will fail.
 - **IPFS Publishing**: Optional publishing to IPFS network
   - When `publishToIPFS` is `true`, content is published to the IPFS network, making it publicly accessible
   - When `publishToIPFS` is `false` (default), content remains private within the Storacha network
-  - Content is always accessible through its CID, but IPFS publishing affects its availability in the broader IPFS network
+  - Content is always accessible through its root CID, but IPFS publishing affects its availability in the broader IPFS network
 
 #### Retrieve Operation
 
-- **CID-Based Access**: Files are retrieved using their unique Content IDs (CIDs)
+- **Root-Based Access**: Files are retrieved using their root CID from the upload operation
 - **Gateway Access**: Retrieval happens through the Storacha HTTP trustless gateway (https://storacha.link) rather than the client instance, but the users can provide a custom gateway in the server configuration if needed
 - **Format Conversion**: Files are returned in a format compatible with the MCP specification (base64 data URIs)
 - **Metadata Preservation**: Content types and other metadata are preserved and returned with the file
-- **Public Access**: No authentication required for retrieval, as CIDs are self-authenticating
+- **Public Access**: No authentication required for retrieval, as root CIDs are self-authenticating
 
 #### Identity Operation
 
