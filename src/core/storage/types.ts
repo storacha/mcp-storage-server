@@ -20,8 +20,6 @@ export interface UploadFile {
   content: string;
   /** MIME type of the file */
   type?: string;
-  /** Whether to publish the file to IPFS (default: false) */
-  publishToIPFS?: boolean;
 }
 
 /**
@@ -32,8 +30,8 @@ export interface UploadOptions {
   signal?: AbortSignal;
   /** Number of retries for failed uploads */
   retries?: number;
-  /** Whether to publish the file to IPFS (default: false) */
-  publishToIPFS?: boolean;
+  /** Whether to publish the file to the Filecoin Network (default: false) */
+  publishToFilecoin?: boolean;
 }
 
 /**

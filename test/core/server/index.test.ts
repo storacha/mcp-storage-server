@@ -87,7 +87,7 @@ describe('MCP Server', () => {
     
     await startMCPServer(mockConfig);
 
-    expect(console.error).toHaveBeenCalledWith('MCP Server initialized');
-    expect(console.error).toHaveBeenCalledWith('Server is ready to handle requests');
+    expect(console.error).toHaveBeenCalledWith('Starting MCP Server in stdio mode...');
+    expect(console.error).toHaveBeenCalledWith('MCP Server initialized. Server is ready to handle requests');
   });
 }); 

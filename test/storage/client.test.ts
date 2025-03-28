@@ -239,8 +239,8 @@ describe('StorachaClient', () => {
       await expect(client.uploadFiles([mockUploadFile])).rejects.toThrow('Unknown error');
     });
 
-    it('should handle upload without IPFS publishing', async () => {
-      const result = await client.uploadFiles([mockUploadFile], { publishToIPFS: false });
+    it('should handle upload without Filecoin publishing', async () => {
+      const result = await client.uploadFiles([mockUploadFile], { publishToFilecoin: false });
 
       expect(result).toEqual({
         root: 'test-cid',

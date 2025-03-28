@@ -113,8 +113,8 @@ export class StorachaClient implements StorageClient {
       });
 
       const root = await this.storage.uploadDirectory(fileObjects, {
-        // If publishToIPFS is false, we don't provide a pieceHasher, so the content is not pinned to IPFS
-        ...(options.publishToIPFS === false ? { pieceHasher: undefined } : {}),
+        // If publishToFilecoin is false, we don't provide a pieceHasher, so the content is not pinned to the Filecoin Network
+        ...(options.publishToFilecoin === false ? { pieceHasher: undefined } : {}),
         retries: options.retries ?? 3,
         signal: options.signal
       });

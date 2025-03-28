@@ -58,10 +58,10 @@ The Storacha MCP server will support three primary operations in this first iter
 - **Content Addressing**: Returns root CIDs for uploaded files, enabling permanent, verifiable references
 - **Space Delegation**: Files are uploaded to the space authorized by the provided delegation in the server configuration
 - **Flexible Space Delegation**: Can accept delegation proof in the request body, with request-level delegation taking priority over server configuration. If no delegation is provided in the request, the server will use the delegation from the DELEGATION environment variable. If no delegation is provided, then the upload operation will fail.
-- **IPFS Publishing**: Optional publishing to IPFS network
-  - When `publishToIPFS` is `true`, content is published to the IPFS network, making it publicly accessible
-  - When `publishToIPFS` is `false` (default), content remains private within the Storacha network
-  - Content is always accessible through its root CID, but IPFS publishing affects its availability in the broader IPFS network
+- **Filecoin Publishing**: Optional publishing to the Filecoin network
+  - When `publishToFilecoin` is `true`, content is published to the Filecoin network, making it publicly accessible
+  - When `publishToFilecoin` is `false` (default), content remains private within the Storacha network
+  - Content is always accessible through its root CID, but Filecoin publishing affects its availability in the broader Filecoin network
 
 #### Retrieve Operation
 

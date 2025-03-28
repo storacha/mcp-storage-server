@@ -3,7 +3,8 @@ import { registerTools } from "./tools/index.js";
 import { startStdioTransport } from "./transports/stdio.js";
 import { startSSETransport } from "./transports/sse.js";
 import { McpServerConfig } from "./types.js";
-
+import { loadConfig as loadMcpServerConfig } from "./config.js";
+import { loadConfig as loadStorageConfig } from "../storage/config.js";
 /**
  * Creates the MCP Storage Server.
  * Registers all resources, tools, and prompts.
@@ -20,22 +21,20 @@ async function startMCPServer(config: McpServerConfig) {
       version: "1.0.0",
       description: "MCP server with file storage capabilities",
     });
-
     // Register all resources, tools, and prompts
     // registerResources(server);
-    registerTools(server);
+    const storageConfig = loadStorageConfig();
+    registerTools(server, storageConfig);
     // registerPrompts(server);
-
-    // Log server information
-    console.error("MCP Server initialized");
-    console.error("Server is ready to handle requests");
-
     
+    const mcpConfig = loadMcpServerConfig();
+    console.error(`Starting MCP Server in ${mcpConfig.transportMode} mode...`);
     if (config.transportMode === 'sse') {
-      await startSSETransport(server, config);
+      await startSSETransport(server, mcpConfig);
     } else {
-      await startStdioTransport(server, config);
+      await startStdioTransport(server, mcpConfig);
     }
+    console.error("MCP Server initialized. Server is ready to handle requests");
 
     return server;
   } catch (error) {
