@@ -79,13 +79,7 @@ describe('MCP Server', () => {
     
     (startStdioTransport as any).mockRejectedValueOnce(mockError);
 
-    await startMCPServer(mockConfig);
-
-    expect(console.error).toHaveBeenCalledWith(
-      'Failed to initialize server:',
-      mockError
-    );
-    expect(process.exit).toHaveBeenCalledWith(1);
+    await expect(startMCPServer(mockConfig)).rejects.toThrow('Failed to initialize storage server: Initialization failed');
   });
 
   it('should log server initialization', async () => {

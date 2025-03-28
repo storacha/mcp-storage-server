@@ -33,7 +33,7 @@ describe('Identity Tool', () => {
     expect(result).toEqual({
       content: [{
         type: 'text',
-        text: JSON.stringify({ did: 'did:key:mock' })
+        text: JSON.stringify({ id: 'did:key:mock' })
       }]
     });
   });

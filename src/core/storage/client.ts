@@ -1,7 +1,6 @@
 import { StorageClient, StorageConfig, UploadResult, RetrieveResult, UploadOptions, UploadFile } from './types.js';
 import { Signer } from '@ucanto/principal/ed25519';
-import { StoreMemory } from '@web3-storage/w3up-client/stores/memory';
-import * as Storage from '@web3-storage/w3up-client';
+import { Client, create } from '@storacha/client';
 import { parseDelegation } from './utils.js';
 import { DEFAULT_GATEWAY_URL } from './config.js';
 
@@ -11,7 +10,7 @@ import { DEFAULT_GATEWAY_URL } from './config.js';
 export class StorachaClient implements StorageClient {
   private config: StorageConfig;
   private initialized: boolean = false;
-  private storage: Storage.Client | null = null;
+  private storage: Client | null = null;
 
   constructor(config: StorageConfig) {
     this.config = {
@@ -38,12 +37,10 @@ export class StorachaClient implements StorageClient {
 
     try {
       const principal = Signer.parse(this.config.privateKey);
-      const store = new StoreMemory();
-      this.storage = await Storage.create({ principal, store });
+      this.storage = await create({ principal });
 
       const delegationProof = await parseDelegation(this.config.delegation);
-      const space = await this.storage.addSpace(delegationProof);
-      await this.storage.setCurrentSpace(space.did());
+      await this.storage.addSpace(delegationProof);
 
       this.initialized = true;
     } catch (error: unknown) {
@@ -56,7 +53,7 @@ export class StorachaClient implements StorageClient {
    * Get the storage client
    * @returns The storage client
    */
-  getStorage(): Storage.Client | null {
+  getStorage(): Client | null {
     return this.storage;
   }
 
