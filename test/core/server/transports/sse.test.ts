@@ -1007,12 +1007,6 @@ describe('SSE Transport', () => {
   });
 
   it('should handle server initialization errors', async () => {
-    const mockResponse = {
-      setHeader: vi.fn(),
-      json: vi.fn(),
-      status: vi.fn().mockReturnThis(),
-    };
-
     // Mock app.listen to throw an error
     mockApp.listen.mockImplementation(() => {
       throw new Error('Server initialization failed');

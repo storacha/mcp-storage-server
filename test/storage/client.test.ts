@@ -4,18 +4,33 @@ import { StorachaClient } from '../../src/core/storage/client.js';
 import { UploadFile } from '../../src/core/storage/types.js';
 
 // Mock dependencies
-vi.mock('@storacha/client', () => {
+vi.mock('@web3-storage/w3up-client', () => {
   const mockClient = {
-    addSpace: vi.fn().mockResolvedValue(undefined),
+    addSpace: vi.fn().mockResolvedValue({
+      did: () => 'did:mock:space'
+    }),
+    setCurrentSpace: vi.fn().mockResolvedValue(undefined),
     uploadDirectory: vi.fn().mockResolvedValue({
       toString: () => 'test-cid'
     })
   };
 
   return {
-    create: vi.fn().mockResolvedValue(mockClient)
+    create: vi.fn().mockResolvedValue(mockClient),
+    Client: class MockClient {
+      addSpace = vi.fn().mockResolvedValue({ did: () => 'did:mock:space' });
+      setCurrentSpace = vi.fn().mockResolvedValue(undefined);
+      uploadDirectory = vi.fn().mockResolvedValue({
+        toString: () => 'test-cid'
+      });
+      did = vi.fn().mockReturnValue('did:test');
+    }
   };
 });
+
+vi.mock('@web3-storage/w3up-client/stores/memory', () => ({
+  StoreMemory: class MockStoreMemory { }
+}));
 
 vi.mock('@ucanto/principal/ed25519', () => ({
   Signer: {

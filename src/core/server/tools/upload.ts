@@ -57,6 +57,7 @@ export const uploadTool = {
       console.error("Error: handling upload:", error);
       return {
         content: [{
+          error: true,
           type: "text" as const,
           text: `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         }]

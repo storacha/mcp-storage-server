@@ -27,6 +27,7 @@ export const identityTool = {
       console.error("Error: handling identity:", error);
       return {
         content: [{
+          error: true,
           type: "text" as const,
           text: `Identity check failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         }]

@@ -53,7 +53,8 @@ describe('Retrieve Tool', () => {
     expect(result).toEqual({
       content: [{
         type: 'text',
-        text: 'Retrieve failed: Test error'
+        text: 'Retrieve failed: Test error',
+        error: true
       }]
     });
   });
@@ -67,7 +68,8 @@ describe('Retrieve Tool', () => {
     expect(result).toEqual({
       content: [{
         type: 'text',
-        text: 'Retrieve failed: Unknown error'
+        text: 'Retrieve failed: Unknown error',
+        error: true
       }]
     });
   });

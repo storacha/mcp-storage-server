@@ -39,7 +39,7 @@ async function startMCPServer(config: McpServerConfig) {
 
     return server;
   } catch (error) {
-    throw new Error(`Failed to initialize storage server: ${error.message}`, { cause: error });
+    throw new Error(`Failed to initialize storage server: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
   }
 }
 

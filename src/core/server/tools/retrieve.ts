@@ -37,6 +37,7 @@ export const retrieveTool = {
       console.error("Error: handling retrieve:", error);
       return {
         content: [{
+          error: true,
           type: "text" as const,
           text: `Retrieve failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         }]

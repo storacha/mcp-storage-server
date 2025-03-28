@@ -37,10 +37,10 @@
   "dependencies": {
     "@ipld/car": "^5.4.0",
     "@modelcontextprotocol/sdk": "^1.7.0",
-    "@storacha/client": "^1.2.4",
     "@ucanto/core": "^10.3.1",
     "@ucanto/interface": "^10.2.0",
     "@ucanto/principal": "^9.0.2",
+    "@web3-storage/w3up-client": "^17.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

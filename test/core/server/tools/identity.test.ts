@@ -50,7 +50,8 @@ describe('Identity Tool', () => {
     expect(result).toEqual({
       content: [{
         type: 'text',
-        text: 'Identity check failed: Private key is not defined in the storage config'
+        text: 'Identity check failed: Private key is not defined in the storage config',
+        error: true
       }]
     });
   });
@@ -65,7 +66,8 @@ describe('Identity Tool', () => {
     expect(result).toEqual({
       content: [{
         type: 'text',
-        text: 'Identity check failed: Invalid private key format'
+        text: 'Identity check failed: Invalid private key format',
+        error: true
       }]
     });
   });
@@ -80,7 +82,8 @@ describe('Identity Tool', () => {
     expect(result).toEqual({
       content: [{
         type: 'text',
-        text: 'Identity check failed: Unknown error'
+        text: 'Identity check failed: Unknown error',
+        error: true
       }]
     });
   });

@@ -26,8 +26,13 @@ describe('Upload Tool', () => {
   };
 
   const mockResult = {
-    cid: 'test-cid',
-    url: 'https://test-gateway.url/test-cid'
+    root: 'test-cid',
+    rootURL: 'https://test-gateway.url/test-cid',
+    files: [{
+      name: 'test.txt',
+      content: 'dGVzdCBkYXRh',
+      url: 'https://test-gateway.url/test-cid'
+    }]
   };
 
   beforeEach(() => {
@@ -280,7 +285,8 @@ describe('Upload Tool', () => {
       expect(result).toEqual({
         content: [{
           type: 'text',
-          text: 'Upload failed: Delegation is required. Please provide it either in the request or via the DELEGATION environment variable.'
+          text: 'Upload failed: Delegation is required. Please provide it either in the request or via the DELEGATION environment variable.',
+          error: true
         }]
       });
     });
@@ -300,7 +306,8 @@ describe('Upload Tool', () => {
       expect(result).toEqual({
         content: [{
           type: 'text',
-          text: 'Upload failed: Upload failed'
+          text: 'Upload failed: Upload failed',
+          error: true
         }]
       });
     });
@@ -319,7 +326,8 @@ describe('Upload Tool', () => {
       expect(result).toEqual({
         content: [{
           type: 'text',
-          text: 'Upload failed: Unknown error'
+          text: 'Upload failed: Unknown error',
+          error: true
         }]
       });
     });
@@ -339,7 +347,8 @@ describe('Upload Tool', () => {
       expect(result).toEqual({
         content: [{
           type: 'text',
-          text: 'Upload failed: Initialization failed'
+          text: 'Upload failed: Initialization failed',
+          error: true
         }]
       });
     });
