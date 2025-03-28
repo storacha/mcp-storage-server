@@ -81,6 +81,10 @@ The Storacha MCP server will support three primary operations in this first iter
 
 #### Authentication & Authorization
 
+- **UCAN Authentication**: Uses User Controlled Authorization Networks (UCAN) for decentralized authentication and authorization
+  - Delegations are provided as UCAN proofs
+  - Supports hierarchical delegation chains
+  - Enables fine-grained access control through capability-based permissions
 - **Bearer Token Authentication**: Optional API key authentication using bearer tokens to control access to the upload operation
 - **Delegation Priority**: Runtime delegations provided in requests take precedence over server pre defined delegation configuration
 - **Flexible Authentication**: Can operate with or without authentication depending on use case and server configuration
