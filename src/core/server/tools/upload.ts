@@ -50,12 +50,7 @@ export const uploadTool = {
       return {
         content: [{
           type: "text" as const,
-          text: JSON.stringify({
-            cid: result.cid,
-            url: result.url,
-            size: Buffer.from(input.file, 'base64').length,
-            type,
-          })
+          text: JSON.stringify(result)
         }]
       };
     } catch (error) {

@@ -40,10 +40,19 @@ export interface UploadOptions {
  * Result of a file upload operation
  */
 export interface UploadResult {
-  /** Content ID of the uploaded file */
-  cid: string;
+  /** Root CID of the directory containing the uploaded file */
+  root: string;
   /** HTTP gateway URL for accessing the file */
-  url: string;
+  rootURL: string;
+  /** List of files uploaded in the directory */
+  files: {
+    /** Name of the file */
+    name: string;
+    /** URL of the file */
+    url: string;
+    /** MIME type of the file */
+    type?: string;
+  }[];
 }
 
 /**

@@ -2,8 +2,8 @@ import { StorageClient, StorageConfig, UploadResult, RetrieveResult, UploadOptio
 import { Signer } from '@ucanto/principal/ed25519';
 import { StoreMemory } from '@web3-storage/w3up-client/stores/memory';
 import * as Storage from '@web3-storage/w3up-client';
-import { parseDelegation, detectMimeType } from './utils.js';
-export const DEFAULT_GATEWAY_URL = 'https://storacha.link';
+import { parseDelegation } from './utils.js';
+import { DEFAULT_GATEWAY_URL } from './config.js';
 
 /**
  * Implementation of the StorageClient interface for Storacha network
@@ -107,12 +107,12 @@ export class StorachaClient implements StorageClient {
 
       const fileObjects = files.map(file => {
         const buffer = Buffer.from(file.content, 'base64');
-        return new File([buffer], file.name, { 
-          type: file.type || detectMimeType(file.name)
+        return new File([buffer], file.name, {
+          type: file.type
         });
       });
 
-      const cid = await this.storage.uploadDirectory(fileObjects, {
+      const root = await this.storage.uploadDirectory(fileObjects, {
         // If publishToIPFS is false, we don't provide a pieceHasher, so the content is not pinned to IPFS
         ...(options.publishToIPFS === false ? { pieceHasher: undefined } : {}),
         retries: options.retries ?? 3,
@@ -120,8 +120,13 @@ export class StorachaClient implements StorageClient {
       });
 
       return {
-        cid: cid.toString(),
-        url: new URL(`/ipfs/${cid.toString()}`, this.getGatewayUrl()).toString()
+        root: root.toString(),
+        rootURL: new URL(`/ipfs/${root.toString()}`, this.getGatewayUrl()).toString(),
+        files: files.map(file => ({
+          name: file.name,
+          type: file.type,
+          url: new URL(`/ipfs/${root.toString()}/${file.name}`, this.getGatewayUrl()).toString(),
+        }))
       };
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError' || options.signal?.aborted) {
