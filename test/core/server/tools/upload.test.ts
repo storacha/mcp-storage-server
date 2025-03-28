@@ -3,12 +3,6 @@ import { uploadTool } from '../../../../src/core/server/tools/upload.js';
 import { StorachaClient } from '../../../../src/core/storage/client.js';
 import { StorageConfig } from '../../../../src/core/storage/types.js';
 
-const mockStorageConfig: StorageConfig = {
-  privateKey: 'mock-private-key',
-  delegation: 'mock-delegation',
-  gatewayUrl: 'https://mock-gateway.url'
-};
-
 const mockStorageClient = {
   capability: {},
   coupon: {},
