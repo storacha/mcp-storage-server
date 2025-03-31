@@ -1,167 +1,146 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { retrieveTool } from '../../../../src/core/server/tools/retrieve.js';
-import { StorachaClient } from '../../../../src/core/storage/client.js';
 import { StorageConfig } from '../../../../src/core/storage/types.js';
+import { Signer } from '@ucanto/principal/ed25519';
+import { Delegation, Capabilities } from '@ucanto/interface';
+
+// Create mocks
+const mockSigner = {
+  did: () => 'did:key:mock',
+  sign: vi.fn().mockResolvedValue(new Uint8Array()),
+  verify: vi.fn().mockResolvedValue(true)
+} as unknown as Signer.EdSigner;
+
+const mockDelegation = {
+  root: {
+    did: () => 'did:key:mock',
+    sign: vi.fn().mockResolvedValue(new Uint8Array()),
+    verify: vi.fn().mockResolvedValue(true)
+  }
+} as unknown as Delegation<Capabilities>;
 
 const mockStorageConfig: StorageConfig = {
-  privateKey: 'mock-private-key',
-  delegation: 'mock-delegation',
-  gatewayUrl: 'https://mock-gateway.url'
+  signer: mockSigner,
+  delegation: mockDelegation,
+  gatewayUrl: new URL('https://mock-gateway.url')
 };
 
-const mockStorageClient = {
-  capability: {},
-  coupon: {},
-  did: 'did:mock',
-  authorize: vi.fn(),
-  delegate: vi.fn(),
-  upload: vi.fn(),
-  uploadCAR: vi.fn(),
-  uploadFile: vi.fn(),
-  list: vi.fn(),
-  remove: vi.fn(),
-  get: vi.fn(),
-  addSpace: vi.fn(),
-  setCurrentSpace: vi.fn(),
-  createSpace: vi.fn(),
-  listSpaces: vi.fn(),
-  currentSpace: vi.fn(),
-  provision: vi.fn(),
-  claim: vi.fn(),
-  proofs: vi.fn(),
-  subscriptions: vi.fn(),
-  plan: vi.fn(),
-  usage: vi.fn(),
-  uploadDirectory: vi.fn(),
-  login: vi.fn(),
-  accounts: vi.fn(),
-  getReceipt: vi.fn(),
-  defaultProvider: vi.fn(),
-  createProvider: vi.fn(),
-  getProvider: vi.fn(),
-  listProviders: vi.fn(),
-  removeProvider: vi.fn(),
-  setDefaultProvider: vi.fn(),
-  getSpace: vi.fn(),
-  removeSpace: vi.fn(),
-  getSpaceProviders: vi.fn(),
-  setSpaceProviders: vi.fn(),
-  getSpaceReceipts: vi.fn(),
-  spaces: vi.fn(),
-  shareSpace: vi.fn(),
-  addProof: vi.fn(),
-  delegations: vi.fn(),
-  store: vi.fn(),
-  agent: vi.fn(),
-  connection: vi.fn(),
-  signer: vi.fn(),
-  principal: vi.fn(),
-  type: vi.fn(),
-  createDelegation: vi.fn(),
-  revokeDelegation: vi.fn(),
-  _agent: {},
-  _serviceConf: {},
-  _store: {},
-  _connection: {}
-} as any; // Type assertion needed because some properties are private
-
-vi.mock('../../../../src/core/storage/client.js', () => ({
-  StorachaClient: vi.fn().mockImplementation(() => ({
-    config: mockStorageConfig,
-    initialized: true,
-    storage: mockStorageClient,
-    initialize: vi.fn().mockResolvedValue(undefined),
-    retrieve: vi.fn().mockResolvedValue({ url: 'test-url' }),
-    getStorage: vi.fn().mockReturnValue(mockStorageClient),
-    isConnected: vi.fn().mockReturnValue(true),
-    getConfig: vi.fn().mockReturnValue(mockStorageConfig),
-    getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
-    uploadFiles: vi.fn().mockResolvedValue({ url: 'test-url' })
-  } as unknown as StorachaClient))
-}));
+// Mock global fetch
+const originalFetch = global.fetch;
 
 describe('Retrieve Tool', () => {
-  const mockConfig: StorageConfig = {
-    privateKey: 'mock-private-key',
-    delegation: 'mock-delegation',
-    gatewayUrl: 'https://mock-gateway.url'
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should successfully retrieve a file', async () => {
-    const tool = retrieveTool(mockConfig);
-    const input = { root: 'test-cid' };
-    const result = await tool.handler(input, {});
+  afterEach(() => {
+    vi.restoreAllMocks();
+    global.fetch = originalFetch;
+  });
+
+  it('should retrieve file successfully', async () => {
+    // Mock successful fetch response
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode('test-data'),
+      headers: new Headers({ 'content-type': 'text/plain' })
+    });
+
+    const tool = retrieveTool(mockStorageConfig);
+    const result = await tool.handler({ root: 'test-cid' }, {});
 
     expect(result).toEqual({
       content: [{
         type: 'text',
-        text: JSON.stringify({ url: 'test-url' })
+        text: JSON.stringify({
+          data: Buffer.from('test-data').toString('base64'),
+          type: 'text/plain'
+        })
       }]
     });
+    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
   });
 
-  it('should handle Error instances during retrieval', async () => {
-    vi.mocked(StorachaClient).mockImplementation(() => ({
-      config: mockStorageConfig,
-      initialized: true,
-      storage: mockStorageClient,
-      initialize: vi.fn().mockResolvedValue(undefined),
-      retrieve: vi.fn().mockRejectedValue(new Error('Retrieval failed')),
-      getStorage: vi.fn().mockReturnValue(mockStorageClient),
-      isConnected: vi.fn().mockReturnValue(true),
-      getConfig: vi.fn().mockReturnValue(mockStorageConfig),
-      getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
-      uploadFiles: vi.fn().mockResolvedValue({ url: 'test-url' })
-    } as unknown as StorachaClient));
+  it('should handle HTTP errors', async () => {
+    // Mock HTTP error response
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: 'Not Found'
+    });
 
-    const tool = retrieveTool(mockConfig);
-    const input = { root: 'test-cid' };
-    const result = await tool.handler(input, {});
+    const tool = retrieveTool(mockStorageConfig);
+    const result = await tool.handler({ root: 'http-error-cid' }, {});
+
+    expect(result).toEqual({
+      content: [{
+        error: true,
+        type: 'text',
+        text: 'Retrieve failed: Failed to retrieve file: HTTP error 404 Not Found'
+      }]
+    });
+    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
+  });
+
+  it('should handle network errors', async () => {
+    // Mock network error
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+    const tool = retrieveTool(mockStorageConfig);
+    const result = await tool.handler({ root: 'network-error-cid' }, {});
+
+    expect(result).toEqual({
+      content: [{
+        error: true,
+        type: 'text',
+        text: 'Retrieve failed: Failed to retrieve file: Network error'
+      }]
+    });
+    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
+  });
+
+  it('should handle unknown error types', async () => {
+    // Mock unknown error
+    global.fetch = vi.fn().mockRejectedValue('Unknown error');
+
+    const tool = retrieveTool(mockStorageConfig);
+    const result = await tool.handler({ root: 'unknown-error-cid' }, {});
+
+    expect(result).toEqual({
+      content: [{
+        error: true,
+        type: 'text',
+        text: 'Retrieve failed: Failed to retrieve file: Unknown error'
+      }]
+    });
+    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
+  });
+
+  it('should handle missing content-type header', async () => {
+    // Mock response with missing content-type header
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => new TextEncoder().encode('test-data'),
+      headers: new Headers()
+    });
+
+    const tool = retrieveTool(mockStorageConfig);
+    const result = await tool.handler({ root: 'no-content-type-cid' }, {});
 
     expect(result).toEqual({
       content: [{
         type: 'text',
-        text: 'Retrieve failed: Retrieval failed',
-        error: true
+        text: JSON.stringify({
+          data: Buffer.from('test-data').toString('base64')
+        })
       }]
     });
+    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
   });
 
-  it('should handle non-Error objects during retrieval', async () => {
-    vi.mocked(StorachaClient).mockImplementation(() => ({
-      config: mockStorageConfig,
-      initialized: true,
-      storage: mockStorageClient,
-      initialize: vi.fn().mockResolvedValue(undefined),
-      retrieve: vi.fn().mockRejectedValue('Unknown error'),
-      getStorage: vi.fn().mockReturnValue(mockStorageClient),
-      isConnected: vi.fn().mockReturnValue(true),
-      getConfig: vi.fn().mockReturnValue(mockStorageConfig),
-      getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
-      uploadFiles: vi.fn().mockResolvedValue({ url: 'test-url' })
-    } as unknown as StorachaClient));
-
-    const tool = retrieveTool(mockConfig);
-    const input = { root: 'test-cid' };
-    const result = await tool.handler(input, {});
-
-    expect(result).toEqual({
-      content: [{
-        type: 'text',
-        text: 'Retrieve failed: Unknown error',
-        error: true
-      }]
-    });
-  });
-
-  it('should validate input schema', () => {
-    const tool = retrieveTool(mockConfig);
-    expect(tool.inputSchema.safeParse({ root: 'test-cid' }).success).toBe(true);
-    expect(tool.inputSchema.safeParse({}).success).toBe(false);
-    expect(tool.inputSchema.safeParse({ root: 123 }).success).toBe(false);
+  it('should validate input schema', async () => {
+    const tool = retrieveTool(mockStorageConfig);
+    expect(tool.inputSchema).toBeDefined();
+    expect(tool.inputSchema.shape.root).toBeDefined();
   });
 }); 

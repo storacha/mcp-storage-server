@@ -1,78 +1,38 @@
 import { describe, it, expect, vi } from 'vitest';
-import { identityTool } from 'src/core/server/tools/identity.js';
-import { StorageConfig } from 'src/core/storage/types.js';
+import { identityTool } from '../../../../src/core/server/tools/identity.js';
 import { Signer } from '@ucanto/principal/ed25519';
+import { Delegation, Capabilities } from '@ucanto/interface';
 
-vi.mock('@ucanto/principal/ed25519', () => ({
-  Signer: {
-    parse: vi.fn()
+const mockSigner = {
+  did: () => 'did:key:mock',
+  sign: vi.fn().mockResolvedValue(new Uint8Array()),
+  verify: vi.fn().mockResolvedValue(true)
+} as unknown as Signer.EdSigner;
+
+const mockDelegation = {
+  root: {
+    did: () => 'did:key:mock',
+    sign: vi.fn().mockResolvedValue(new Uint8Array()),
+    verify: vi.fn().mockResolvedValue(true)
   }
-}));
+} as unknown as Delegation<Capabilities>;
 
-describe('Identity Tool', () => {
-  const mockDid = 'did:key:mock-did';
-  const mockConfig: StorageConfig = {
-    privateKey: 'test-private-key',
-    delegation: 'test-delegation',
-    gatewayUrl: 'https://test.gateway.com'
-  };
+const mockConfig = {
+  signer: mockSigner,
+  delegation: mockDelegation,
+  gatewayUrl: new URL('https://test.gateway.com')
+};
 
-  it('should return the agent DID when private key is available', async () => {
-    const mockPrincipal = {
-      did: () => mockDid,
-    };
-    vi.mocked(Signer.parse).mockReturnValue(mockPrincipal as any);
-
+describe('identityTool', () => {
+  it('should return the DID key', async () => {
     const tool = identityTool(mockConfig);
     const result = await tool.handler();
-
     expect(result).toEqual({
-      content: [{ type: 'text', text: JSON.stringify({ id: mockDid }) }]
+      content: [{
+        type: "text",
+        text: JSON.stringify({ id: 'did:key:mock' })
+      }]
     });
   });
 
-  it('should handle missing private key error', async () => {
-    const tool = identityTool({} as StorageConfig);
-    const result = await tool.handler();
-
-    expect(result).toEqual({
-      content: [{ type: 'text', text: 'Identity check failed: Private key is not defined in the storage config' }]
-    });
-  });
-
-  it('should handle Signer.parse errors', async () => {
-    const mockConfig = {
-      privateKey: 'mock-private-key',
-      delegation: 'mock-delegation'
-    };
-
-    vi.mocked(Signer.parse).mockImplementation(() => {
-      throw new Error('Parse error');
-    });
-
-    const tool = identityTool(mockConfig);
-    const result = await tool.handler();
-
-    expect(result).toEqual({
-      content: [{ type: 'text', text: 'Identity check failed: Parse error' }]
-    });
-  });
-
-  it('should handle unknown errors', async () => {
-    const mockConfig = {
-      privateKey: 'mock-private-key',
-      delegation: 'mock-delegation'
-    };
-
-    vi.mocked(Signer.parse).mockImplementation(() => {
-      throw 'Unknown error';
-    });
-
-    const tool = identityTool(mockConfig);
-    const result = await tool.handler();
-
-    expect(result).toEqual({
-      content: [{ type: 'text', text: 'Identity check failed: Unknown error' }]
-    });
-  });
 }); 

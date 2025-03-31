@@ -2,6 +2,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { uploadTool } from '../../../../src/core/server/tools/upload.js';
 import { StorachaClient } from '../../../../src/core/storage/client.js';
 import { StorageConfig } from '../../../../src/core/storage/types.js';
+import { Capabilities, Delegation } from '@ucanto/interface';
+import { Signer } from '@ucanto/principal/ed25519';
+
+vi.mock('../../../../src/core/storage/utils.js', () => {
+  return {
+    detectMimeType: vi.fn().mockImplementation((fileName) => {
+      if (fileName.endsWith('.json')) return 'application/json';
+      return 'text/plain';
+    }),
+    parseDelegation: vi.fn().mockImplementation(async (delegationStr) => {
+      if (delegationStr === 'custom-delegation') {
+        return {
+          root: {
+            did: () => 'did:key:custom',
+            sign: vi.fn().mockResolvedValue(new Uint8Array()),
+            verify: vi.fn().mockResolvedValue(true)
+          }
+        };
+      }
+      throw new Error('Unexpected delegation string');
+    })
+  };
+});
 
 const mockStorageClient = {
   capability: {},
@@ -73,12 +96,28 @@ vi.mock('../../../../src/core/storage/client.js', () => ({
   }))
 }));
 
+const mockSigner = {
+  did: () => 'did:key:mock',
+  sign: vi.fn().mockResolvedValue(new Uint8Array()),
+  verify: vi.fn().mockResolvedValue(true)
+} as unknown as Signer.EdSigner;
+
+const mockDelegation = {
+  root: {
+    did: () => 'did:key:mock',
+    sign: vi.fn().mockResolvedValue(new Uint8Array()),
+    verify: vi.fn().mockResolvedValue(true)
+  }
+} as unknown as Delegation<Capabilities>;
+
+const mockStorageConfig: StorageConfig = {
+  signer: mockSigner,
+  delegation: mockDelegation,
+  gatewayUrl: new URL('https://mock-gateway.url')
+};
+
+
 describe('Upload Tool', () => {
-  const mockConfig = {
-    privateKey: 'mock-private-key',
-    delegation: 'mock-delegation',
-    gatewayUrl: 'https://mock-gateway.com'
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -88,7 +127,7 @@ describe('Upload Tool', () => {
 
   describe('input validation', () => {
     it('should validate valid base64 input', () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt'
@@ -97,7 +136,7 @@ describe('Upload Tool', () => {
     });
 
     it('should reject invalid base64 input', () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'not-base64',
         name: 'test.txt'
@@ -106,7 +145,7 @@ describe('Upload Tool', () => {
     });
 
     it('should reject malformed base64 input', () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'a'.repeat(5), // Invalid base64 length
         name: 'test.txt'
@@ -115,7 +154,7 @@ describe('Upload Tool', () => {
     });
 
     it('should reject non-base64 characters', () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'a===', // Invalid padding
         name: 'test.txt'
@@ -124,7 +163,7 @@ describe('Upload Tool', () => {
     });
 
     it('should accept empty string as valid base64', () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: '',
         name: 'test.txt'
@@ -133,7 +172,7 @@ describe('Upload Tool', () => {
     });
 
     it('should reject base64 with invalid padding', () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt'
@@ -142,7 +181,7 @@ describe('Upload Tool', () => {
     });
 
     it('should accept optional parameters', () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt',
@@ -157,13 +196,13 @@ describe('Upload Tool', () => {
 
   describe('file handling', () => {
     it('should handle base64 string input', async () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt'
       };
 
-      await tool.handler(input, { storageConfig: mockConfig });
+      await tool.handler(input, {});
 
       expect(mockUploadFiles).toHaveBeenCalledWith([{
         name: 'test.txt',
@@ -176,14 +215,13 @@ describe('Upload Tool', () => {
     });
 
     it('should handle Filecoin publishing when publishToFilecoin is true', async () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt',
         publishToFilecoin: true
       };
-      const mockPieceHasher = { hash: vi.fn() };
-      await tool.handler(input, { storageConfig: mockConfig, pieceHasher: mockPieceHasher });
+      await tool.handler(input, {});
 
       expect(mockUploadFiles).toHaveBeenCalledWith([{
         name: 'test.txt',
@@ -196,14 +234,13 @@ describe('Upload Tool', () => {
     });
 
     it('should not use pieceHasher when publishToFilecoin is false', async () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt',
         publishToFilecoin: false
       };
-      const mockPieceHasher = { hash: vi.fn() };
-      await tool.handler(input, { storageConfig: mockConfig, pieceHasher: mockPieceHasher });
+      await tool.handler(input, {});
 
       expect(mockUploadFiles).toHaveBeenCalledWith([{
         name: 'test.txt',
@@ -216,13 +253,13 @@ describe('Upload Tool', () => {
     });
 
     it('should handle base64 string input with detected MIME type', async () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt'
       };
 
-      await tool.handler(input, { storageConfig: mockConfig });
+      await tool.handler(input, {});
 
       expect(mockUploadFiles).toHaveBeenCalledWith([{
         name: 'test.txt',
@@ -235,13 +272,13 @@ describe('Upload Tool', () => {
     });
 
     it('should use correct MIME type for known extensions', async () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.json'
       };
 
-      await tool.handler(input, { storageConfig: mockConfig });
+      await tool.handler(input, {});
 
       expect(mockUploadFiles).toHaveBeenCalledWith([{
         name: 'test.json',
@@ -254,14 +291,14 @@ describe('Upload Tool', () => {
     });
 
     it('should use provided type over detected type', async () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt',
         type: 'application/custom'
       };
 
-      await tool.handler(input, { storageConfig: mockConfig });
+      await tool.handler(input, {});
 
       expect(mockUploadFiles).toHaveBeenCalledWith([{
         name: 'test.txt',
@@ -276,21 +313,23 @@ describe('Upload Tool', () => {
 
   describe('configuration', () => {
     it('should use custom delegation if provided', async () => {
-      const tool = uploadTool(mockConfig);
+      vi.clearAllMocks();
+      mockUploadFiles.mockResolvedValue({ url: 'test-url' });
+      
+      const tool = uploadTool({
+        signer: mockSigner,
+        delegation: mockDelegation,
+        gatewayUrl: new URL('https://mock-gateway.url')
+      });
+
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt',
         delegation: 'custom-delegation'
       };
 
-      await tool.handler(input, {
-        storageConfig: {
-          privateKey: mockConfig.privateKey,
-          delegation: 'custom-delegation',
-          gatewayUrl: mockConfig.gatewayUrl
-        }
-      });
-
+      await tool.handler(input, {});
+      
       expect(mockUploadFiles).toHaveBeenCalledWith([{
         name: 'test.txt',
         content: 'dGVzdA==',
@@ -302,7 +341,7 @@ describe('Upload Tool', () => {
     });
 
     it('should use custom gateway URL if provided', async () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt',
@@ -311,9 +350,9 @@ describe('Upload Tool', () => {
 
       await tool.handler(input, {
         storageConfig: {
-          privateKey: mockConfig.privateKey,
-          delegation: mockConfig.delegation,
-          gatewayUrl: 'https://custom-gateway.url'
+          signer: mockSigner,
+          delegation: mockDelegation,
+          gatewayUrl: new URL('https://custom-gateway.url')
         }
       });
 
@@ -328,14 +367,14 @@ describe('Upload Tool', () => {
     });
 
     it('should use custom file name and type if provided', async () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'custom.txt',
         type: 'text/custom',
       };
 
-      await tool.handler(input, { storageConfig: mockConfig });
+      await tool.handler(input, {});
 
       expect(mockUploadFiles).toHaveBeenCalledWith([{
         name: 'custom.txt',
@@ -351,16 +390,17 @@ describe('Upload Tool', () => {
   describe('error handling', () => {
     it('should handle missing delegation error', async () => {
       const tool = uploadTool({
-        privateKey: mockConfig.privateKey,
-        gatewayUrl: mockConfig.gatewayUrl
-      } as StorageConfig);
+        ...mockStorageConfig,
+        // @ts-ignore - This is intentional to test the error handling
+        delegation: undefined
+      });
 
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt'
       };
 
-      const result = await tool.handler(input, { storageConfig: mockConfig });
+      const result = await tool.handler(input, {});
 
       expect(result).toEqual({
         content: [{
@@ -373,25 +413,25 @@ describe('Upload Tool', () => {
 
     it('should handle Error instances during upload', async () => {
       vi.mocked(StorachaClient).mockImplementation(() => ({
-        config: mockConfig,
+        config: mockStorageConfig,
         initialized: true,
         storage: mockStorageClient,
         initialize: vi.fn().mockResolvedValue(undefined),
         uploadFiles: vi.fn().mockRejectedValue(new Error('Upload failed')),
         getStorage: vi.fn().mockReturnValue(mockStorageClient),
         isConnected: vi.fn().mockReturnValue(true),
-        getConfig: vi.fn().mockReturnValue(mockConfig),
+        getConfig: vi.fn().mockReturnValue(mockStorageConfig),
         getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
         retrieve: vi.fn().mockResolvedValue({ url: 'test-url' })
       } as unknown as StorachaClient));
 
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt'
       };
 
-      const result = await tool.handler(input, { storageConfig: mockConfig });
+      const result = await tool.handler(input, {});
 
       expect(result).toEqual({
         content: [{
@@ -404,25 +444,25 @@ describe('Upload Tool', () => {
 
     it('should handle non-Error objects during upload', async () => {
       vi.mocked(StorachaClient).mockImplementation(() => ({
-        config: mockConfig,
+        config: mockStorageConfig,
         initialized: true,
         storage: mockStorageClient,
         initialize: vi.fn().mockResolvedValue(undefined),
         uploadFiles: vi.fn().mockRejectedValue('Unknown error'),
         getStorage: vi.fn().mockReturnValue(mockStorageClient),
         isConnected: vi.fn().mockReturnValue(true),
-        getConfig: vi.fn().mockReturnValue(mockConfig),
+        getConfig: vi.fn().mockReturnValue(mockStorageConfig),
         getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
         retrieve: vi.fn().mockResolvedValue({ url: 'test-url' })
       } as unknown as StorachaClient));
 
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt'
       };
 
-      const result = await tool.handler(input, { storageConfig: mockConfig });
+      const result = await tool.handler(input, {});
 
       expect(result).toEqual({
         content: [{
@@ -435,25 +475,25 @@ describe('Upload Tool', () => {
 
     it('should handle initialization errors', async () => {
       vi.mocked(StorachaClient).mockImplementation(() => ({
-        config: mockConfig,
-        initialized: true,
+        config: mockStorageConfig,
+        initialized: false,
         storage: mockStorageClient,
         initialize: vi.fn().mockRejectedValue(new Error('Initialization failed')),
         uploadFiles: vi.fn().mockResolvedValue({ url: 'test-url' }),
         getStorage: vi.fn().mockReturnValue(mockStorageClient),
         isConnected: vi.fn().mockReturnValue(true),
-        getConfig: vi.fn().mockReturnValue(mockConfig),
+        getConfig: vi.fn().mockReturnValue(mockStorageConfig),
         getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
         retrieve: vi.fn().mockResolvedValue({ url: 'test-url' })
       } as unknown as StorachaClient));
 
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt'
       };
 
-      const result = await tool.handler(input, { storageConfig: mockConfig });
+      const result = await tool.handler(input, {});
 
       expect(result).toEqual({
         content: [{
@@ -468,21 +508,21 @@ describe('Upload Tool', () => {
   describe('base64 validation', () => {
     beforeEach(() => {
       vi.mocked(StorachaClient).mockImplementation(() => ({
-        config: mockConfig,
+        config: mockStorageConfig,
         initialized: true,
         storage: mockStorageClient,
         initialize: vi.fn().mockResolvedValue(undefined),
         uploadFiles: vi.fn().mockResolvedValue({ url: 'test-url' }),
         getStorage: vi.fn().mockReturnValue(mockStorageClient),
         isConnected: vi.fn().mockReturnValue(true),
-        getConfig: vi.fn().mockReturnValue(mockConfig),
+        getConfig: vi.fn().mockReturnValue(mockStorageConfig),
         getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
         retrieve: vi.fn().mockResolvedValue({ url: 'test-url' })
       } as unknown as StorachaClient));
     });
 
     it('should accept valid base64 string', () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'SGVsbG8gV29ybGQ=', // "Hello World" in base64 with proper padding
         name: 'test.txt'
@@ -491,7 +531,7 @@ describe('Upload Tool', () => {
     });
 
     it('should accept base64 string with data URL prefix', () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'data:text/plain;base64,SGVsbG8gV29ybGQ=', // "Hello World" in base64 with data URL
         name: 'test.txt'
@@ -500,7 +540,7 @@ describe('Upload Tool', () => {
     });
 
     it('should reject invalid base64 string', () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'not-base64!',
         name: 'test.txt'
@@ -513,7 +553,7 @@ describe('Upload Tool', () => {
     });
 
     it('should reject malformed base64 string', () => {
-      const tool = uploadTool(mockConfig);
+      const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'SGVsbG8gV29ybGQ', // Missing padding
         name: 'test.txt'

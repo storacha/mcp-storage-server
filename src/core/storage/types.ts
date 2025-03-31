@@ -1,13 +1,16 @@
+import { Capabilities, Delegation } from '@ucanto/interface';
+import { Signer } from '@ucanto/principal/ed25519';
+
 /**
  * Configuration options for the storage client
  */
 export interface StorageConfig {
   /** Private key for w3up-client authentication */
-  privateKey: string | undefined;
+  signer: Signer.EdSigner;
   /** Delegation for storage access */
-  delegation: string | undefined;
+  delegation: Delegation<Capabilities>;
   /** Optional gateway URL for file retrieval */
-  gatewayUrl?: string;
+  gatewayUrl?: URL;
 }
 
 /**

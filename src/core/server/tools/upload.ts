@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { StorachaClient } from '../../storage/client.js';
-import { detectMimeType } from '../../storage/utils.js';
+import { detectMimeType, parseDelegation } from '../../storage/utils.js';
 import { StorageConfig } from 'src/core/storage/types.js';
 
 const uploadInputSchema = z.object({
@@ -31,9 +31,9 @@ export const uploadTool = (storageConfig: StorageConfig) => ({
       }
 
       const client = new StorachaClient({
-        privateKey: storageConfig.privateKey,
-        delegation: input.delegation || storageConfig.delegation,
-        gatewayUrl: input.gatewayUrl || storageConfig.gatewayUrl,
+        signer: storageConfig.signer,
+        delegation: input.delegation ? (await parseDelegation(input.delegation)) : storageConfig.delegation,
+        gatewayUrl: input.gatewayUrl ? new URL(input.gatewayUrl) : storageConfig.gatewayUrl,
       });
       await client.initialize();
 

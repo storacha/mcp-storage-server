@@ -1,70 +1,89 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadConfig } from '../../src/core/storage/config.js';
 
+// Mock the required dependencies
+vi.mock('@ucanto/principal/ed25519', () => ({
+  Signer: {
+    parse: vi.fn().mockReturnValue({
+      did: () => 'did:key:test',
+      sign: vi.fn(),
+      verify: vi.fn()
+    })
+  }
+}));
+
+vi.mock('../../src/core/storage/utils.js', () => ({
+  parseDelegation: vi.fn().mockResolvedValue({
+    root: {
+      did: () => 'did:key:test',
+      sign: vi.fn(),
+      verify: vi.fn()
+    }
+  })
+}));
+
 describe('Storage Configuration', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    vi.resetModules();
-    process.env = {
-      ...originalEnv,
-      PRIVATE_KEY: 'test-private-key',
-      DELEGATION: 'test-delegation',
-      GATEWAY_URL: 'https://test-gateway.link'
-    };
+    process.env = { ...originalEnv };
+    // Clear all mocks before each test
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    vi.clearAllMocks();
   });
 
-  it('should load configuration from environment variables', () => {
-    const config = loadConfig();
-    expect(config).toEqual({
-      privateKey: 'test-private-key',
-      delegation: 'test-delegation',
-      gatewayUrl: 'https://test-gateway.link'
-    });
+  it('should load configuration from environment variables', async () => {
+    process.env.PRIVATE_KEY = 'MXByaXZhdGUta2V5'; // base64pad encoded "private-key"
+    process.env.DELEGATION = 'test-delegation';
+    process.env.GATEWAY_URL = 'https://test-gateway.url';
+
+    const config = await loadConfig();
+    expect(config.signer).toBeDefined();
+    expect(config.delegation).toBeDefined();
+    expect(config.gatewayUrl?.toString()).toBe('https://test-gateway.url/');
   });
 
-  it('should use default gateway URL when not provided', () => {
-    delete process.env.GATEWAY_URL;
-    const config = loadConfig();
-    expect(config.gatewayUrl).toBe('https://storacha.link');
+  it('should use default gateway URL when not provided', async () => {
+    process.env.PRIVATE_KEY = 'MXByaXZhdGUta2V5'; // base64pad encoded "private-key"
+    process.env.DELEGATION = 'test-delegation';
+
+    const config = await loadConfig();
+    expect(config.gatewayUrl?.toString()).toBe('https://storacha.link/');
   });
 
-  it('should throw error when private key is missing', () => {
+  it('should throw error when private key is missing', async () => {
+    // Ensure PRIVATE_KEY is not set
     delete process.env.PRIVATE_KEY;
-    expect(() => loadConfig()).toThrow('PRIVATE_KEY environment variable is required');
+    
+    await expect(loadConfig()).rejects.toThrow('PRIVATE_KEY environment variable is required');
   });
 
-  it('should handle missing delegation', () => {
+  it('should throw error when delegation is missing', async () => {
+    process.env.PRIVATE_KEY = 'MXByaXZhdGUta2V5'; // base64pad encoded "private-key"
+    // Ensure DELEGATION is not set
     delete process.env.DELEGATION;
-    const config = loadConfig();
-    expect(config.delegation).toBeUndefined();
+
+    await expect(loadConfig()).rejects.toThrow('DELEGATION environment variable is required');
   });
 
-  it('should handle empty string values as missing', () => {
+  it('should handle empty string values as missing', async () => {
     process.env.PRIVATE_KEY = '';
-    expect(() => loadConfig()).toThrow('PRIVATE_KEY environment variable is required');
-
-    process.env.PRIVATE_KEY = 'test-private-key';
     process.env.DELEGATION = '';
-    const config = loadConfig();
-    expect(config.delegation).toBeUndefined();
+
+    await expect(loadConfig()).rejects.toThrow('PRIVATE_KEY environment variable is required');
   });
 
-  it('should trim whitespace from environment variables', () => {
-    process.env.PRIVATE_KEY = '  test-private-key  ';
-    process.env.DELEGATION = '  test-delegation  ';
-    process.env.GATEWAY_URL = '  https://test-gateway.link  ';
+  it('should trim whitespace from environment variables', async () => {
+    process.env.PRIVATE_KEY = ' MXByaXZhdGUta2V5 '; // base64pad encoded "private-key" with whitespace
+    process.env.DELEGATION = ' test-delegation ';
+    process.env.GATEWAY_URL = ' https://test-gateway.url ';
 
-    const config = loadConfig();
-    expect(config).toEqual({
-      privateKey: 'test-private-key',
-      delegation: 'test-delegation',
-      gatewayUrl: 'https://test-gateway.link'
-    });
+    const config = await loadConfig();
+    expect(config.signer).toBeDefined();
+    expect(config.delegation).toBeDefined();
+    expect(config.gatewayUrl?.toString()).toBe('https://test-gateway.url/');
   });
 }); 

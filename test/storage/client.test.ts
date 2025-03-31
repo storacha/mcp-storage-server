@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DEFAULT_GATEWAY_URL } from '../../src/core/storage/config.js';
 import { StorachaClient } from '../../src/core/storage/client.js';
-import { UploadFile } from '../../src/core/storage/types.js';
+import { UploadFile, StorageConfig } from '../../src/core/storage/types.js';
+import { Signer } from '@ucanto/principal/ed25519';
+import { Delegation, Capabilities } from '@ucanto/interface';
 
 // Mock dependencies
 vi.mock('@web3-storage/w3up-client', () => {
@@ -34,8 +36,22 @@ vi.mock('@web3-storage/w3up-client/stores/memory', () => ({
 
 vi.mock('@ucanto/principal/ed25519', () => ({
   Signer: {
-    parse: vi.fn().mockReturnValue({ did: () => 'did:key:mock' })
+    parse: vi.fn().mockReturnValue({
+      did: () => 'did:key:mock',
+      sign: vi.fn().mockResolvedValue(new Uint8Array()),
+      verify: vi.fn().mockResolvedValue(true)
+    } as unknown as Signer.EdSigner)
   }
+}));
+
+vi.mock('../../src/core/storage/utils.js', () => ({
+  parseDelegation: vi.fn().mockResolvedValue({
+    root: {
+      did: () => 'did:key:mock',
+      sign: vi.fn().mockResolvedValue(new Uint8Array()),
+      verify: vi.fn().mockResolvedValue(true)
+    }
+  } as unknown as Delegation<Capabilities>)
 }));
 
 vi.mock('@ipld/car', () => ({
@@ -52,10 +68,34 @@ vi.mock('@ipld/car', () => ({
 }));
 
 describe('StorachaClient', () => {
-  const testConfig = {
-    privateKey: 'MPrivateKeyBase64Encoded',
-    delegation: 'EaJlcm9vdHOAZ3ZlcnNpb24B5AYBcRIgpZ4MRVdSlJxn8T1IFPxhwqZ2paczDMRb5oBWVDNwerCoYXNYRO2hA0DMgutkv46ExjnhqdR6JFVdgyaKc38NK12V5hwB1cLftikz43OXSWdrxNKaBL+wtolepqT+RreRYzx1H8cR4bsPYXZlMC45LjFjYXR0iKJjY2FuZ3NwYWNlLypkd2l0aHg4ZGlkOmtleTp6Nk1rcUVtWVBhQXQ1NGNLcVUxNXNtdlJvc0U0REwyRFRBYVRUWVhlNTFFWU1IaniiY2NhbmZibG9iLypkd2l0aHg4ZGlkOmtleTp6Nk1rcUVtWVBhQXQ1NGNLcVUxNXNtdlJvc0U0REwyRFRBYVRUWVhlNTFFWU1IaniiY2NhbmdpbmRleC8qZHdpdGh4OGRpZDprZXk6ejZNa3FFbVlQYUF0NTRjS3FVMTVzbXZSb3NFNERMMkRUQWFUVFlYZTUxRVlNSGp4omNjYW5nc3RvcmUvKmR3aXRoeDhkaWQ6a2V5Ono2TWtxRW1ZUGFBdDU0Y0txVTE1c212Um9zRTRETDJEVEFhVFRZWGU1MUVZTUhqeGNhdWRYIu0BD/H2VCFppv0Fsz3GdriUK/4Iao2eYULV1DqcfV2w6xpjZXhwGmmgi+pjZmN0gaFlc3BhY2WhZG5hbWV1ZWxpemFhaS1hZ2VudC1zdG9yYWdlY2lzc1Qi7QGgPVuFaazEr1L3zixl3NO/VE5nHshg3MApRJ4lVEy8K2NwcmaA8wIBcRIgkjZDt7UAKikjdfCO3mP9VQmegkDkUWPoagw//BhSaDWoYXNYRO2hA0Bd3S2SatOkCxZLMTk8tm4zjToP5v9U/lGztFVujalaSJan/3X2XF0YzXah6v3XW+ae4jh99mXbpUsN6F+V/kcHYXZlMC45LjFjYXR0gaJjY2FuaXN0b3JlL2FkZGR3aXRoeDhkaWQ6a2V5Ono2TWtxRW1ZUGFBdDU0Y0txVTE1c212Um9zRTRETDJEVEFhVFRZWGU1MUVZTUhqeGNhdWRYIu0BGUXBxPv8nsHq/Vk8ftHu74UIqEYUl5LT8Nhvs8Pt/fdjZXhw9mNmY3SBoWVzcGFjZaFkbmFtZXVlbGl6YWFpLWFnZW50LXN0b3JhZ2VjaXNzWCLtAQ/x9lQhaab9BbM9xna4lCv+CGqNnmFC1dQ6nH1dsOsaY3ByZoHYKlglAAFxEiClngxFV1KUnGfxPUgU/GHCpnalpzMMxFvmgFZUM3B6sA==',
-    gatewayUrl: 'https://custom-gateway.link'
+  // Create helper function for URL construction
+  const buildGatewayUrl = (gateway: URL | undefined, path: string) => {
+    if (!gateway) {
+      gateway = new URL(DEFAULT_GATEWAY_URL);
+    }
+    return new URL(`/ipfs/${path}`, gateway).toString();
+  };
+
+  const mockSigner = {
+    did: () => 'did:key:mock',
+    sign: vi.fn().mockResolvedValue(new Uint8Array()),
+    verify: vi.fn().mockResolvedValue(true)
+  } as unknown as Signer.EdSigner;
+
+  const mockDelegation = {
+    root: {
+      did: () => 'did:key:mock',
+      sign: vi.fn().mockResolvedValue(new Uint8Array()),
+      verify: vi.fn().mockResolvedValue(true)
+    }
+  } as unknown as Delegation<Capabilities>;
+
+  const mockGatewayUrl = new URL('https://custom-gateway.link');
+
+  const testConfig: StorageConfig = {
+    signer: mockSigner,
+    delegation: mockDelegation,
+    gatewayUrl: mockGatewayUrl
   };
 
   let client: StorachaClient;
@@ -75,10 +115,10 @@ describe('StorachaClient', () => {
 
     it('should use default gateway URL when not provided', () => {
       const clientWithoutGateway = new StorachaClient({
-        privateKey: testConfig.privateKey,
+        signer: testConfig.signer,
         delegation: testConfig.delegation,
       });
-      expect(clientWithoutGateway['config'].gatewayUrl).toBe(DEFAULT_GATEWAY_URL);
+      expect(clientWithoutGateway['config'].gatewayUrl).toEqual(new URL(DEFAULT_GATEWAY_URL));
     });
   });
 
@@ -90,7 +130,7 @@ describe('StorachaClient', () => {
 
     it('should throw error if private key is missing', async () => {
       const invalidClient = new StorachaClient({
-        privateKey: undefined,
+        signer: undefined as unknown as Signer.EdSigner,
         delegation: testConfig.delegation,
         gatewayUrl: testConfig.gatewayUrl,
       });
@@ -99,8 +139,8 @@ describe('StorachaClient', () => {
 
     it('should throw error if delegation is missing', async () => {
       const invalidClient = new StorachaClient({
-        privateKey: testConfig.privateKey,
-        delegation: undefined,
+        signer: testConfig.signer,
+        delegation: undefined as unknown as Delegation<Capabilities>,
         gatewayUrl: testConfig.gatewayUrl,
       });
       await expect(invalidClient.initialize()).rejects.toThrow('Delegation is required');
@@ -143,14 +183,14 @@ describe('StorachaClient', () => {
 
     it('should return config with default gateway URL when not provided', () => {
       const clientWithoutGateway = new StorachaClient({
-        privateKey: testConfig.privateKey,
+        signer: testConfig.signer,
         delegation: testConfig.delegation,
       });
       const config = clientWithoutGateway.getConfig();
       expect(config).toEqual({
-        privateKey: testConfig.privateKey,
+        signer: testConfig.signer,
         delegation: testConfig.delegation,
-        gatewayUrl: DEFAULT_GATEWAY_URL
+        gatewayUrl: new URL(DEFAULT_GATEWAY_URL)
       });
     });
   });
@@ -177,11 +217,11 @@ describe('StorachaClient', () => {
 
       expect(result).toEqual({
         root: 'test-cid',
-        rootURL: `${testConfig.gatewayUrl}/ipfs/test-cid`,
+        rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
         files: [{
           name: 'test.txt',
-          url: `${testConfig.gatewayUrl}/ipfs/test-cid/test.txt`,
           type: 'text/plain',
+          url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt')
         }]
       });
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
@@ -206,11 +246,11 @@ describe('StorachaClient', () => {
 
       expect(result).toEqual({
         root: 'test-cid',
-        rootURL: `${testConfig.gatewayUrl}/ipfs/test-cid`,
+        rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
         files: [{
           name: 'test.bin',
-          url: `${testConfig.gatewayUrl}/ipfs/test-cid/test.bin`,
-          type: 'application/octet-stream'
+          type: 'application/octet-stream',
+          url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.bin')
         }]
       });
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
@@ -244,11 +284,11 @@ describe('StorachaClient', () => {
 
       expect(result).toEqual({
         root: 'test-cid',
-        rootURL: `${testConfig.gatewayUrl}/ipfs/test-cid`,
+        rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
         files: [{
           name: 'test.txt',
-          url: `${testConfig.gatewayUrl}/ipfs/test-cid/test.txt`,
-          type: 'text/plain'
+          type: 'text/plain',
+          url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt')
         }]
       });
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
@@ -267,11 +307,11 @@ describe('StorachaClient', () => {
 
       expect(result).toEqual({
         root: 'test-cid',
-        rootURL: `${testConfig.gatewayUrl}/ipfs/test-cid`,
+        rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
         files: [{
           name: 'test.txt',
-          url: `${testConfig.gatewayUrl}/ipfs/test-cid/test.txt`,
-          type: undefined
+          type: undefined,
+          url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt')
         }]
       });
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
@@ -296,7 +336,7 @@ describe('StorachaClient', () => {
       expect(fileEntry).toHaveProperty('type');
       
       // Validate URL construction
-      expect(fileEntry.url).toBe(`${testConfig.gatewayUrl}/ipfs/${result.root}/${fileEntry.name}`);
+      expect(fileEntry.url).toBe(buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/${fileEntry.name}`));
     });
 
     it('should handle large file uploads', async () => {
@@ -310,11 +350,11 @@ describe('StorachaClient', () => {
 
       expect(result).toEqual({
         root: 'test-cid',
-        rootURL: `${testConfig.gatewayUrl}/ipfs/test-cid`,
+        rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
         files: [{
           name: 'large.bin',
-          url: `${testConfig.gatewayUrl}/ipfs/test-cid/large.bin`,
-          type: 'application/octet-stream'
+          type: 'application/octet-stream',
+          url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/large.bin')
         }]
       });
     });
@@ -330,8 +370,8 @@ describe('StorachaClient', () => {
       expect(result.files).toHaveLength(2);
       expect(result.files[0].name).toBe('file1.txt');
       expect(result.files[1].name).toBe('file2.txt');
-      expect(result.files[0].url).toBe(`${testConfig.gatewayUrl}/ipfs/${result.root}/file1.txt`);
-      expect(result.files[1].url).toBe(`${testConfig.gatewayUrl}/ipfs/${result.root}/file2.txt`);
+      expect(result.files[0].url).toBe(buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/file1.txt`));
+      expect(result.files[1].url).toBe(buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/file2.txt`));
     });
   });
 
@@ -388,16 +428,14 @@ describe('StorachaClient', () => {
 
     it('should handle missing content-type header', async () => {
       const client = new StorachaClient({
-        privateKey: 'test-key',
-        delegation: 'test-delegation',
-        gatewayUrl: 'https://test.gateway'
+        signer: mockSigner,
+        delegation: mockDelegation,
+        gatewayUrl: mockGatewayUrl
       });
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         arrayBuffer: () => Promise.resolve(Buffer.from('test-data')),
-        headers: {
-          get: () => null
-        }
+        headers: new Headers()
       });
 
       const result = await client.retrieve('test-cid');

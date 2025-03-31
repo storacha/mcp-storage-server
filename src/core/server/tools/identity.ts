@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { Signer } from '@ucanto/principal/ed25519';
 import { StorageConfig } from 'src/core/storage/types.js';
 
 export const identityTool = (storageConfig: StorageConfig) => ({
@@ -8,16 +7,10 @@ export const identityTool = (storageConfig: StorageConfig) => ({
   inputSchema: z.object({}),
   handler: async () => {
     try {
-      if (!storageConfig.privateKey) {
-        throw new Error('Private key is not defined in the storage config');
-      }
-
-      const principal = Signer.parse(storageConfig.privateKey);
-
       return {
         content: [{
           type: "text" as const,
-          text: JSON.stringify({ id: principal.did() })
+          text: JSON.stringify({ id: storageConfig.signer.did() })
         }]
       };
     } catch (error) {

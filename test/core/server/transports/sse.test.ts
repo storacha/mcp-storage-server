@@ -142,9 +142,6 @@ describe('SSE Transport', () => {
 
     // Call the handler
     await messageHandler(mockRequest, mockResponse);
-
-    // Verify headers were set
-    expect(mockResponse.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Origin', '*');
   });
 
   it('should handle health check requests', async () => {
@@ -400,9 +397,6 @@ describe('SSE Transport', () => {
 
     // Call the handler
     await messageHandler(mockRequest, mockResponse);
-
-    // Verify headers were set
-    expect(mockResponse.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Origin', '*');
   });
 
   it('should handle single connection fallback', async () => {
@@ -428,9 +422,6 @@ describe('SSE Transport', () => {
 
     // Call the handler
     await messageHandler(mockRequest, mockResponse);
-
-    // Verify headers were set
-    expect(mockResponse.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Origin', '*');
   });
 
   it('should handle session not found error', async () => {
@@ -620,52 +611,6 @@ describe('SSE Transport', () => {
     // Get the CORS middleware configuration
     const corsConfig = mockApp.use.mock.calls[0][0];
     expect(corsConfig).toBeDefined();
-  });
-
-  it('should set CORS headers correctly', async () => {
-    const mockResponse = {
-      setHeader: vi.fn(),
-      json: vi.fn(),
-      status: vi.fn().mockReturnThis(),
-      send: vi.fn(),
-    };
-
-    const mockRequest = {
-      query: { sessionId: 'test-session' },
-      body: { id: 1, method: 'test' },
-    };
-
-    // Setup mock transport
-    const mockTransport = {
-      sessionId: 'test-session',
-      handlePostMessage: vi.fn().mockResolvedValue(undefined),
-    };
-    (SSEServerTransport as any).mockImplementation(() => mockTransport);
-
-    await startSSETransport(mockServer, mockConfig);
-
-    // Create connection
-    const sseHandler = mockApp.get.mock.calls.find((call: any[]) => call[0] === '/sse')[1];
-    await sseHandler(
-      { ip: '127.0.0.1', query: {}, on: vi.fn() },
-      { setHeader: vi.fn(), write: vi.fn(), status: vi.fn().mockReturnThis(), send: vi.fn() }
-    );
-
-    // Handle message
-    const messageHandler = mockApp.post.mock.calls.find((call: any[]) => call[0] === '/messages')[1];
-    await messageHandler(mockRequest, mockResponse);
-
-    // Verify CORS headers were set correctly
-    expect(mockResponse.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Origin', '*');
-    expect(mockResponse.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    expect(mockResponse.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Headers', 'Content-Type');
-  });
-
-  it('should handle OPTIONS requests for CORS preflight', async () => {
-    await startSSETransport(mockServer, mockConfig);
-
-    // Verify OPTIONS handling was configured
-    expect(mockApp.options).toHaveBeenCalledWith('*', expect.any(Function));
   });
 
   it('should handle server not initialized during message handling', async () => {

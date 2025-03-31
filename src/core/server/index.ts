@@ -23,7 +23,7 @@ async function startMCPServer(config: McpServerConfig) {
     });
     // Register all resources, tools, and prompts
     // registerResources(server);
-    const storageConfig = loadStorageConfig();
+    const storageConfig = await loadStorageConfig();
     registerTools(server, storageConfig);
     // registerPrompts(server);
     

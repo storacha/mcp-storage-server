@@ -43,11 +43,6 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
     console.error(`Received SSE connection request from ${req.ip}`);
     console.error(`Query parameters: ${JSON.stringify(req.query)}`);
 
-    // Set CORS headers explicitly
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
     if (!mcpServer) {
       console.error("Server not initialized yet, rejecting SSE connection");
       return res.status(503).send("Server not initialized");
@@ -108,11 +103,6 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
 
     console.error(`Received message for sessionId ${sessionId}`);
     console.error(`Message body: ${JSON.stringify(req.body)}`);
-
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (!mcpServer) {
       console.error("Server not initialized yet");

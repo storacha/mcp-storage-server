@@ -1,8 +1,6 @@
 import { StorageClient, StorageConfig, UploadResult, RetrieveResult, UploadOptions, UploadFile } from './types.js';
-import { Signer } from '@ucanto/principal/ed25519';
 import { StoreMemory } from '@web3-storage/w3up-client/stores/memory';
 import * as Storage from '@web3-storage/w3up-client';
-import { parseDelegation } from './utils.js';
 import { DEFAULT_GATEWAY_URL } from './config.js';
 
 /**
@@ -10,13 +8,13 @@ import { DEFAULT_GATEWAY_URL } from './config.js';
  */
 export class StorachaClient implements StorageClient {
   private config: StorageConfig;
-  private initialized: boolean = false;
+  private initialized: Promise<void> | null = null;
   private storage: Storage.Client | null = null;
 
   constructor(config: StorageConfig) {
     this.config = {
       ...config,
-      gatewayUrl: config.gatewayUrl?.trim() || DEFAULT_GATEWAY_URL
+      gatewayUrl: config.gatewayUrl || new URL(DEFAULT_GATEWAY_URL)
     };
   }
 
@@ -25,10 +23,10 @@ export class StorachaClient implements StorageClient {
    */
   async initialize(): Promise<void> {
     if (this.initialized) {
-      return;
+      return this.initialized;
     }
 
-    if (!this.config.privateKey) {
+    if (!this.config.signer) {
       throw new Error('Private key is required');
     }
 
@@ -36,20 +34,18 @@ export class StorachaClient implements StorageClient {
       throw new Error('Delegation is required');
     }
 
-    try {
-      const principal = Signer.parse(this.config.privateKey);
-      const store = new StoreMemory();
-      this.storage = await Storage.create({ principal, store });
+    this.initialized = (async () => {
+      try {
+        const store = new StoreMemory();
+        this.storage = await Storage.create({ principal: this.config.signer, store });
+        await this.storage.addSpace(this.config.delegation);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(`Failed to initialize storage client: ${message}`, { cause: error });
+      }
+    })();
 
-      const delegationProof = await parseDelegation(this.config.delegation);
-      const space = await this.storage.addSpace(delegationProof);
-      await this.storage.setCurrentSpace(space.did());
-
-      this.initialized = true;
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to initialize storage client: ${message}`, { cause: error });
-    }
+    return this.initialized;
   }
 
   /**
@@ -64,7 +60,7 @@ export class StorachaClient implements StorageClient {
    * Check if the client is connected and ready
    */
   isConnected(): boolean {
-    return this.initialized;
+    return this.initialized !== null;
   }
 
   /**
@@ -80,8 +76,8 @@ export class StorachaClient implements StorageClient {
    * @returns The configured gateway URL
    * @throws Error if gateway URL is not set
    */
-  getGatewayUrl(): string {
-    if (!this.config.gatewayUrl?.trim()) {
+  getGatewayUrl(): URL {
+    if (!this.config.gatewayUrl) {
       throw new Error('Gateway URL is not set');
     }
     return this.config.gatewayUrl;

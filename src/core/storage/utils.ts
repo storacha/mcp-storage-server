@@ -1,6 +1,6 @@
 import { CarReader } from '@ipld/car';
 import { importDAG } from '@ucanto/core/delegation';
-import { Delegation } from '@ucanto/interface';
+import { Capabilities, Delegation } from '@ucanto/interface';
 import { lookup } from 'mime-types';
 
 /**
@@ -8,7 +8,7 @@ import { lookup } from 'mime-types';
  * @param data - The base64 encoded CAR file
  * @returns The parsed delegation
  */
-export async function parseDelegation(data: string): Promise<Delegation> {
+export async function parseDelegation(data: string): Promise<Delegation<Capabilities>> {
   const blocks = []
   const reader = await CarReader.fromBytes(Buffer.from(data, 'base64'))
   for await (const block of reader.blocks()) {
