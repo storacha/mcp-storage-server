@@ -10,7 +10,7 @@ export interface McpServerConfig {
   transportMode: 'stdio' | 'sse';
   /** Port number */
   port: number;
-  /** Host name */ 
+  /** Host name */
   host: string;
 }
 
@@ -25,7 +25,8 @@ export interface McpTool {
   /** Input schema for the tool */
   inputSchema: z.ZodObject<any, any, any, any>;
   /** Handler function for the tool */
-  handler: (input: any, extra: any) => Promise<{
+  // @eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handler: (input: z.AnyZodObject) => Promise<{
     content: { type: string; text: string; error?: boolean }[];
   }>;
 }

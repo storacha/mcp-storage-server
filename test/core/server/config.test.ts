@@ -26,7 +26,7 @@ describe('Server Configuration', () => {
       port: 3001,
       host: 'localhost',
       connectionTimeoutMs: 30000,
-      transportMode: 'stdio'
+      transportMode: 'stdio',
     });
   });
 
@@ -36,7 +36,7 @@ describe('Server Configuration', () => {
       port: 3001,
       host: '0.0.0.0',
       connectionTimeoutMs: 30000,
-      transportMode: 'stdio'
+      transportMode: 'stdio',
     });
   });
 
@@ -84,7 +84,7 @@ describe('Server Configuration', () => {
       port: 3001,
       host: '0.0.0.0',
       connectionTimeoutMs: 30000,
-      transportMode: 'stdio'
+      transportMode: 'stdio',
     });
   });
 
@@ -97,7 +97,7 @@ describe('Server Configuration', () => {
       port: 3001,
       host: 'localhost',
       connectionTimeoutMs: 30000,
-      transportMode: 'stdio'
+      transportMode: 'stdio',
     });
   });
-}); 
+});

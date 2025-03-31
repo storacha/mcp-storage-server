@@ -70,9 +70,7 @@ describe('SSE Transport', () => {
     expect(express).toHaveBeenCalled();
 
     // Verify CORS middleware was added
-    expect(mockApp.use).toHaveBeenCalledWith(
-      expect.any(Function)
-    );
+    expect(mockApp.use).toHaveBeenCalledWith(expect.any(Function));
 
     // Verify endpoints were registered
     expect(mockApp.get).toHaveBeenCalledWith('/sse', expect.any(Function));
@@ -81,10 +79,7 @@ describe('SSE Transport', () => {
     expect(mockApp.get).toHaveBeenCalledWith('/', expect.any(Function));
 
     // Verify server was started with correct config
-    expect(mockApp.listen).toHaveBeenCalledWith(
-      mockConfig.port,
-      expect.any(Function)
-    );
+    expect(mockApp.listen).toHaveBeenCalledWith(mockConfig.port, expect.any(Function));
 
     // Verify timeout was set
     expect(mockHttpServer.timeout).toBe(mockConfig.connectionTimeoutMs);
@@ -106,7 +101,9 @@ describe('SSE Transport', () => {
 
     // Get the SSE endpoint handler
     await startSSETransport(mockServer, mockConfig);
-    const sseHandler = mockApp.get.mock.calls.find((call: [string, Function]) => call[0] === '/sse')[1];
+    const sseHandler = mockApp.get.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/sse'
+    )[1];
 
     // Mock successful connection
     mockServer.connect.mockResolvedValue(undefined);
@@ -138,7 +135,9 @@ describe('SSE Transport', () => {
 
     // Get the messages endpoint handler
     await startSSETransport(mockServer, mockConfig);
-    const messageHandler = mockApp.post.mock.calls.find((call: [string, Function]) => call[0] === '/messages')[1];
+    const messageHandler = mockApp.post.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/messages'
+    )[1];
 
     // Call the handler
     await messageHandler(mockRequest, mockResponse);
@@ -152,7 +151,9 @@ describe('SSE Transport', () => {
 
     // Get the health endpoint handler
     await startSSETransport(mockServer, mockConfig);
-    const healthHandler = mockApp.get.mock.calls.find((call: [string, Function]) => call[0] === '/health')[1];
+    const healthHandler = mockApp.get.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/health'
+    )[1];
 
     // Call the handler
     healthHandler({}, mockResponse);
@@ -175,7 +176,9 @@ describe('SSE Transport', () => {
 
     // Get the root endpoint handler
     await startSSETransport(mockServer, mockConfig);
-    const rootHandler = mockApp.get.mock.calls.find((call: [string, Function]) => call[0] === '/')[1];
+    const rootHandler = mockApp.get.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/'
+    )[1];
 
     // Call the handler
     rootHandler({}, mockResponse);
@@ -210,7 +213,9 @@ describe('SSE Transport', () => {
     // Set server to null to simulate uninitialized state
     const nullServer = null;
     await startSSETransport(nullServer as any, mockConfig);
-    const sseHandler = mockApp.get.mock.calls.find((call: [string, Function]) => call[0] === '/sse')[1];
+    const sseHandler = mockApp.get.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/sse'
+    )[1];
 
     await sseHandler(mockRequest, mockResponse);
 
@@ -238,7 +243,9 @@ describe('SSE Transport', () => {
 
     // Get the SSE endpoint handler
     await startSSETransport(mockServer, mockConfig);
-    const sseHandler = mockApp.get.mock.calls.find((call: [string, Function]) => call[0] === '/sse')[1];
+    const sseHandler = mockApp.get.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/sse'
+    )[1];
 
     // Call the handler
     await sseHandler(mockRequest, mockResponse);
@@ -275,7 +282,9 @@ describe('SSE Transport', () => {
 
     // Get the SSE endpoint handler
     await startSSETransport(mockServer, mockConfig);
-    const sseHandler = mockApp.get.mock.calls.find((call: [string, Function]) => call[0] === '/sse')[1];
+    const sseHandler = mockApp.get.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/sse'
+    )[1];
 
     // Call the handler and wait for the error to be logged
     await sseHandler(mockRequest, mockResponse);
@@ -324,7 +333,9 @@ describe('SSE Transport', () => {
       body: { id: 1, method: 'test' },
     };
 
-    const messageHandler = mockApp.post.mock.calls.find((call: any[]) => call[0] === '/messages')[1];
+    const messageHandler = mockApp.post.mock.calls.find(
+      (call: any[]) => call[0] === '/messages'
+    )[1];
     await messageHandler(mockMessageRequest, mockResponse);
 
     expect(mockResponse.status).toHaveBeenCalledWith(404);
@@ -332,8 +343,8 @@ describe('SSE Transport', () => {
       expect.objectContaining({
         error: expect.objectContaining({
           code: -32000,
-          message: 'Session not found'
-        })
+          message: 'Session not found',
+        }),
       })
     );
   });
@@ -352,7 +363,9 @@ describe('SSE Transport', () => {
 
     // Get the messages endpoint handler
     await startSSETransport(mockServer, mockConfig);
-    const messageHandler = mockApp.post.mock.calls.find((call: [string, Function]) => call[0] === '/messages')[1];
+    const messageHandler = mockApp.post.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/messages'
+    )[1];
 
     // Mock multiple connections
     const mockTransport1 = { sessionId: 'session1' };
@@ -369,7 +382,8 @@ describe('SSE Transport', () => {
     expect(mockResponse.json).toHaveBeenCalledWith(
       expect.objectContaining({
         error: expect.objectContaining({
-          message: 'No session ID provided. Please provide a sessionId query parameter or connect to /sse first.',
+          message:
+            'No session ID provided. Please provide a sessionId query parameter or connect to /sse first.',
         }),
       })
     );
@@ -384,16 +398,18 @@ describe('SSE Transport', () => {
 
     const mockRequest = {
       query: {},
-      body: { 
-        id: 1, 
+      body: {
+        id: 1,
         method: 'test',
-        params: { sessionId: 'test-session' }
+        params: { sessionId: 'test-session' },
       },
     };
 
     // Get the messages endpoint handler
     await startSSETransport(mockServer, mockConfig);
-    const messageHandler = mockApp.post.mock.calls.find((call: [string, Function]) => call[0] === '/messages')[1];
+    const messageHandler = mockApp.post.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/messages'
+    )[1];
 
     // Call the handler
     await messageHandler(mockRequest, mockResponse);
@@ -413,7 +429,9 @@ describe('SSE Transport', () => {
 
     // Get the messages endpoint handler
     await startSSETransport(mockServer, mockConfig);
-    const messageHandler = mockApp.post.mock.calls.find((call: [string, Function]) => call[0] === '/messages')[1];
+    const messageHandler = mockApp.post.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/messages'
+    )[1];
 
     // Mock single connection
     const mockTransport = { sessionId: 'single-session' };
@@ -438,7 +456,9 @@ describe('SSE Transport', () => {
 
     // Get the messages endpoint handler
     await startSSETransport(mockServer, mockConfig);
-    const messageHandler = mockApp.post.mock.calls.find((call: [string, Function]) => call[0] === '/messages')[1];
+    const messageHandler = mockApp.post.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/messages'
+    )[1];
 
     // Call the handler
     await messageHandler(mockRequest, mockResponse);
@@ -511,10 +531,10 @@ describe('SSE Transport', () => {
     const mockRequest = {
       method: 'OPTIONS',
       headers: {
-        'origin': 'http://localhost:3000',
+        origin: 'http://localhost:3000',
         'access-control-request-method': 'GET',
-        'access-control-request-headers': 'content-type'
-      }
+        'access-control-request-headers': 'content-type',
+      },
     };
 
     await startSSETransport(mockServer, mockConfig);
@@ -525,8 +545,14 @@ describe('SSE Transport', () => {
 
     // Verify CORS headers were set
     expect(mockResponse.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Origin', '*');
-    expect(mockResponse.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
-    expect(mockResponse.setHeader).toHaveBeenCalledWith('Access-Control-Allow-Headers', 'content-type');
+    expect(mockResponse.setHeader).toHaveBeenCalledWith(
+      'Access-Control-Allow-Methods',
+      'GET,HEAD,PUT,PATCH,POST,DELETE'
+    );
+    expect(mockResponse.setHeader).toHaveBeenCalledWith(
+      'Access-Control-Allow-Headers',
+      'content-type'
+    );
     expect(mockResponse.setHeader).toHaveBeenCalledWith('Vary', 'Access-Control-Request-Headers');
     expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Length', '0');
   });
@@ -578,7 +604,9 @@ describe('SSE Transport', () => {
     await sseHandler(sseRequest, sseResponse);
 
     // Get the message handler
-    const messageHandler = mockApp.post.mock.calls.find((call: any[]) => call[0] === '/messages')?.[1];
+    const messageHandler = mockApp.post.mock.calls.find(
+      (call: any[]) => call[0] === '/messages'
+    )?.[1];
     if (!messageHandler) {
       throw new Error('Message handler not found');
     }
@@ -601,9 +629,7 @@ describe('SSE Transport', () => {
     await startSSETransport(mockServer, mockConfig);
 
     // Verify CORS middleware was configured correctly
-    expect(mockApp.use).toHaveBeenCalledWith(
-      expect.any(Function)
-    );
+    expect(mockApp.use).toHaveBeenCalledWith(expect.any(Function));
 
     // Verify OPTIONS handling was configured
     expect(mockApp.options).toHaveBeenCalledWith('*', expect.any(Function));
@@ -628,7 +654,9 @@ describe('SSE Transport', () => {
     // Set server to null to simulate uninitialized state
     const nullServer = null;
     await startSSETransport(nullServer as any, mockConfig);
-    const messageHandler = mockApp.post.mock.calls.find((call: [string, Function]) => call[0] === '/messages')[1];
+    const messageHandler = mockApp.post.mock.calls.find(
+      (call: [string, Function]) => call[0] === '/messages'
+    )[1];
 
     // Call the handler
     await messageHandler(mockRequest, mockResponse);
@@ -640,8 +668,8 @@ describe('SSE Transport', () => {
         jsonrpc: '2.0',
         error: expect.objectContaining({
           code: -32000,
-          message: 'Server not initialized'
-        })
+          message: 'Server not initialized',
+        }),
       })
     );
   });
@@ -686,8 +714,8 @@ describe('SSE Transport', () => {
 
     // Verify error was logged
     const errorCalls = (console.error as any).mock.calls;
-    const hasWriteError = errorCalls.some((call: any[]) => 
-      call[0] && call[0].includes && call[0].includes('Write failed')
+    const hasWriteError = errorCalls.some(
+      (call: any[]) => call[0] && call[0].includes && call[0].includes('Write failed')
     );
     expect(hasWriteError).toBe(true);
   });
@@ -730,8 +758,9 @@ describe('SSE Transport', () => {
 
     // Verify error was logged
     const errorCalls = (console.error as any).mock.calls;
-    const hasConnectionError = errorCalls.some((call: any[]) => 
-      call[0] && call[0].includes && call[0].includes('Error connecting transport to server')
+    const hasConnectionError = errorCalls.some(
+      (call: any[]) =>
+        call[0] && call[0].includes && call[0].includes('Error connecting transport to server')
     );
     expect(hasConnectionError).toBe(true);
   });
@@ -779,8 +808,9 @@ describe('SSE Transport', () => {
 
     // Verify error was logged
     const errorCalls = (console.error as any).mock.calls;
-    const hasJsonError = errorCalls.some((call: any[]) => 
-      call[0] && call[0].includes && call[0].includes('Error connecting transport to server')
+    const hasJsonError = errorCalls.some(
+      (call: any[]) =>
+        call[0] && call[0].includes && call[0].includes('Error connecting transport to server')
     );
     expect(hasJsonError).toBe(true);
   });
@@ -819,7 +849,9 @@ describe('SSE Transport', () => {
     );
 
     // Get the message handler
-    const messageHandler = mockApp.post.mock.calls.find((call: any[]) => call[0] === '/messages')?.[1];
+    const messageHandler = mockApp.post.mock.calls.find(
+      (call: any[]) => call[0] === '/messages'
+    )?.[1];
     if (!messageHandler) {
       throw new Error('Message handler not found');
     }
@@ -848,9 +880,9 @@ describe('SSE Transport', () => {
 
     const mockRequest = {
       query: { sessionId: 'test-session' },
-      body: { 
+      body: {
         // Missing required JSON-RPC fields
-        foo: 'bar'
+        foo: 'bar',
       },
     };
 
@@ -876,7 +908,9 @@ describe('SSE Transport', () => {
     );
 
     // Get the message handler
-    const messageHandler = mockApp.post.mock.calls.find((call: any[]) => call[0] === '/messages')?.[1];
+    const messageHandler = mockApp.post.mock.calls.find(
+      (call: any[]) => call[0] === '/messages'
+    )?.[1];
     if (!messageHandler) {
       throw new Error('Message handler not found');
     }
@@ -932,7 +966,9 @@ describe('SSE Transport', () => {
     );
 
     // Get the message handler
-    const messageHandler = mockApp.post.mock.calls.find((call: any[]) => call[0] === '/messages')?.[1];
+    const messageHandler = mockApp.post.mock.calls.find(
+      (call: any[]) => call[0] === '/messages'
+    )?.[1];
     if (!messageHandler) {
       throw new Error('Message handler not found');
     }
@@ -1004,4 +1040,4 @@ describe('SSE Transport', () => {
     // Verify timeout was set correctly
     expect(mockHttpServer.timeout).toBe(customConfig.connectionTimeoutMs);
   });
-}); 
+});

@@ -8,21 +8,21 @@ import { Delegation, Capabilities } from '@ucanto/interface';
 const mockSigner = {
   did: () => 'did:key:mock',
   sign: vi.fn().mockResolvedValue(new Uint8Array()),
-  verify: vi.fn().mockResolvedValue(true)
+  verify: vi.fn().mockResolvedValue(true),
 } as unknown as Signer.EdSigner;
 
 const mockDelegation = {
   root: {
     did: () => 'did:key:mock',
     sign: vi.fn().mockResolvedValue(new Uint8Array()),
-    verify: vi.fn().mockResolvedValue(true)
-  }
+    verify: vi.fn().mockResolvedValue(true),
+  },
 } as unknown as Delegation<Capabilities>;
 
 const mockStorageConfig: StorageConfig = {
   signer: mockSigner,
   delegation: mockDelegation,
-  gatewayUrl: new URL('https://mock-gateway.url')
+  gatewayUrl: new URL('https://mock-gateway.url'),
 };
 
 // Mock global fetch
@@ -43,20 +43,22 @@ describe('Retrieve Tool', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new TextEncoder().encode('test-data'),
-      headers: new Headers({ 'content-type': 'text/plain' })
+      headers: new Headers({ 'content-type': 'text/plain' }),
     });
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ root: 'test-cid' }, {});
+    const result = await tool.handler({ root: 'test-cid' });
 
     expect(result).toEqual({
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          data: Buffer.from('test-data').toString('base64'),
-          type: 'text/plain'
-        })
-      }]
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            data: Buffer.from('test-data').toString('base64'),
+            type: 'text/plain',
+          }),
+        },
+      ],
     });
     expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
   });
@@ -66,18 +68,20 @@ describe('Retrieve Tool', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
-      statusText: 'Not Found'
+      statusText: 'Not Found',
     });
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ root: 'http-error-cid' }, {});
+    const result = await tool.handler({ root: 'http-error-cid' });
 
     expect(result).toEqual({
-      content: [{
-        error: true,
-        type: 'text',
-        text: 'Retrieve failed: Failed to retrieve file: HTTP error 404 Not Found'
-      }]
+      content: [
+        {
+          error: true,
+          type: 'text',
+          text: 'Retrieve failed: Failed to retrieve file: HTTP error 404 Not Found',
+        },
+      ],
     });
     expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
   });
@@ -87,14 +91,16 @@ describe('Retrieve Tool', () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ root: 'network-error-cid' }, {});
+    const result = await tool.handler({ root: 'network-error-cid' });
 
     expect(result).toEqual({
-      content: [{
-        error: true,
-        type: 'text',
-        text: 'Retrieve failed: Failed to retrieve file: Network error'
-      }]
+      content: [
+        {
+          error: true,
+          type: 'text',
+          text: 'Retrieve failed: Failed to retrieve file: Network error',
+        },
+      ],
     });
     expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
   });
@@ -104,14 +110,16 @@ describe('Retrieve Tool', () => {
     global.fetch = vi.fn().mockRejectedValue('Unknown error');
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ root: 'unknown-error-cid' }, {});
+    const result = await tool.handler({ root: 'unknown-error-cid' });
 
     expect(result).toEqual({
-      content: [{
-        error: true,
-        type: 'text',
-        text: 'Retrieve failed: Failed to retrieve file: Unknown error'
-      }]
+      content: [
+        {
+          error: true,
+          type: 'text',
+          text: 'Retrieve failed: Failed to retrieve file: Unknown error',
+        },
+      ],
     });
     expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
   });
@@ -121,19 +129,21 @@ describe('Retrieve Tool', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       arrayBuffer: async () => new TextEncoder().encode('test-data'),
-      headers: new Headers()
+      headers: new Headers(),
     });
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ root: 'no-content-type-cid' }, {});
+    const result = await tool.handler({ root: 'no-content-type-cid' });
 
     expect(result).toEqual({
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          data: Buffer.from('test-data').toString('base64')
-        })
-      }]
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            data: Buffer.from('test-data').toString('base64'),
+          }),
+        },
+      ],
     });
     expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
   });
@@ -143,4 +153,4 @@ describe('Retrieve Tool', () => {
     expect(tool.inputSchema).toBeDefined();
     expect(tool.inputSchema.shape.root).toBeDefined();
   });
-}); 
+});

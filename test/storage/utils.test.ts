@@ -49,7 +49,9 @@ describe('detectMimeType', () => {
     expect(detectMimeType('dataset.parquet')).toBeUndefined();
     expect(detectMimeType('data.arrow')).toBeUndefined();
     expect(detectMimeType('table.orc')).toBeUndefined();
-    expect(detectMimeType('stats.xlsx')).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    expect(detectMimeType('stats.xlsx')).toBe(
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
     expect(detectMimeType('analysis.ipynb')).toBe('application/x-ipynb+json');
   });
 
@@ -60,4 +62,4 @@ describe('detectMimeType', () => {
     expect(detectMimeType('model.pb')).toBeUndefined();
     expect(detectMimeType('model.tflite')).toBeUndefined();
   });
-}); 
+});

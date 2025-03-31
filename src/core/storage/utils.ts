@@ -9,12 +9,12 @@ import { lookup } from 'mime-types';
  * @returns The parsed delegation
  */
 export async function parseDelegation(data: string): Promise<Delegation<Capabilities>> {
-  const blocks = []
-  const reader = await CarReader.fromBytes(Buffer.from(data, 'base64'))
+  const blocks = [];
+  const reader = await CarReader.fromBytes(Buffer.from(data, 'base64'));
   for await (const block of reader.blocks()) {
-    blocks.push(block)
+    blocks.push(block);
   }
-  return importDAG(blocks)
+  return importDAG(blocks);
 }
 
 /**

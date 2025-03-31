@@ -81,4 +81,4 @@ describe('Stdio Transport', () => {
     expect(process.stdin.setTimeout).toHaveBeenCalledWith(mockConfig.connectionTimeoutMs);
     expect(process.stdout.setTimeout).toHaveBeenCalledWith(mockConfig.connectionTimeoutMs);
   });
-}); 
+});

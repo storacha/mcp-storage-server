@@ -28,6 +28,6 @@ export const loadConfig = (): McpServerConfig => {
     port,
     host,
     connectionTimeoutMs,
-    transportMode
+    transportMode,
   };
 };

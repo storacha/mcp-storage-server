@@ -7,22 +7,22 @@ import { Signer } from '@ucanto/principal/ed25519';
 
 vi.mock('../../../../src/core/storage/utils.js', () => {
   return {
-    detectMimeType: vi.fn().mockImplementation((fileName) => {
+    detectMimeType: vi.fn().mockImplementation(fileName => {
       if (fileName.endsWith('.json')) return 'application/json';
       return 'text/plain';
     }),
-    parseDelegation: vi.fn().mockImplementation(async (delegationStr) => {
+    parseDelegation: vi.fn().mockImplementation(async delegationStr => {
       if (delegationStr === 'custom-delegation') {
         return {
           root: {
             did: () => 'did:key:custom',
             sign: vi.fn().mockResolvedValue(new Uint8Array()),
-            verify: vi.fn().mockResolvedValue(true)
-          }
+            verify: vi.fn().mockResolvedValue(true),
+          },
         };
       }
       throw new Error('Unexpected delegation string');
-    })
+    }),
   };
 });
 
@@ -79,7 +79,7 @@ const mockStorageClient = {
   _agent: {},
   _serviceConf: {},
   _store: {},
-  _connection: {}
+  _connection: {},
 } as any;
 
 const mockUploadFiles = vi.fn();
@@ -92,33 +92,31 @@ vi.mock('../../../../src/core/storage/client.js', () => ({
     getStorage: vi.fn(),
     isConnected: vi.fn(),
     getConfig: vi.fn(),
-    getGatewayUrl: vi.fn()
-  }))
+    getGatewayUrl: vi.fn(),
+  })),
 }));
 
 const mockSigner = {
   did: () => 'did:key:mock',
   sign: vi.fn().mockResolvedValue(new Uint8Array()),
-  verify: vi.fn().mockResolvedValue(true)
+  verify: vi.fn().mockResolvedValue(true),
 } as unknown as Signer.EdSigner;
 
 const mockDelegation = {
   root: {
     did: () => 'did:key:mock',
     sign: vi.fn().mockResolvedValue(new Uint8Array()),
-    verify: vi.fn().mockResolvedValue(true)
-  }
+    verify: vi.fn().mockResolvedValue(true),
+  },
 } as unknown as Delegation<Capabilities>;
 
 const mockStorageConfig: StorageConfig = {
   signer: mockSigner,
   delegation: mockDelegation,
-  gatewayUrl: new URL('https://mock-gateway.url')
+  gatewayUrl: new URL('https://mock-gateway.url'),
 };
 
-
 describe('Upload Tool', () => {
-
   beforeEach(() => {
     vi.clearAllMocks();
     mockUploadFiles.mockResolvedValue({ url: 'test-url' });
@@ -130,7 +128,7 @@ describe('Upload Tool', () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
-        name: 'test.txt'
+        name: 'test.txt',
       };
       expect(tool.inputSchema.safeParse(input).success).toBe(true);
     });
@@ -139,7 +137,7 @@ describe('Upload Tool', () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'not-base64',
-        name: 'test.txt'
+        name: 'test.txt',
       };
       expect(tool.inputSchema.safeParse(input).success).toBe(false);
     });
@@ -148,7 +146,7 @@ describe('Upload Tool', () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'a'.repeat(5), // Invalid base64 length
-        name: 'test.txt'
+        name: 'test.txt',
       };
       expect(tool.inputSchema.safeParse(input).success).toBe(false);
     });
@@ -157,7 +155,7 @@ describe('Upload Tool', () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'a===', // Invalid padding
-        name: 'test.txt'
+        name: 'test.txt',
       };
       expect(tool.inputSchema.safeParse(input).success).toBe(false);
     });
@@ -166,7 +164,7 @@ describe('Upload Tool', () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: '',
-        name: 'test.txt'
+        name: 'test.txt',
       };
       expect(tool.inputSchema.safeParse(input).success).toBe(true);
     });
@@ -175,7 +173,7 @@ describe('Upload Tool', () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
-        name: 'test.txt'
+        name: 'test.txt',
       };
       expect(tool.inputSchema.safeParse(input).success).toBe(true);
     });
@@ -188,7 +186,7 @@ describe('Upload Tool', () => {
         type: 'text/plain',
         delegation: 'test-delegation',
         gatewayUrl: 'https://test.com',
-        publishToFilecoin: true
+        publishToFilecoin: true,
       };
       expect(tool.inputSchema.safeParse(input).success).toBe(true);
     });
@@ -199,19 +197,24 @@ describe('Upload Tool', () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
-        name: 'test.txt'
+        name: 'test.txt',
       };
 
-      await tool.handler(input, {});
+      await tool.handler(input);
 
-      expect(mockUploadFiles).toHaveBeenCalledWith([{
-        name: 'test.txt',
-        content: 'dGVzdA==',
-        type: 'text/plain'
-      }], {
-        publishToFilecoin: false,
-        retries: 3
-      });
+      expect(mockUploadFiles).toHaveBeenCalledWith(
+        [
+          {
+            name: 'test.txt',
+            content: 'dGVzdA==',
+            type: 'text/plain',
+          },
+        ],
+        {
+          publishToFilecoin: false,
+          retries: 3,
+        }
+      );
     });
 
     it('should handle Filecoin publishing when publishToFilecoin is true', async () => {
@@ -219,18 +222,23 @@ describe('Upload Tool', () => {
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt',
-        publishToFilecoin: true
-      };
-      await tool.handler(input, {});
-
-      expect(mockUploadFiles).toHaveBeenCalledWith([{
-        name: 'test.txt',
-        content: 'dGVzdA==',
-        type: 'text/plain',
-      }], {
         publishToFilecoin: true,
-        retries: 3
-      });
+      };
+      await tool.handler(input);
+
+      expect(mockUploadFiles).toHaveBeenCalledWith(
+        [
+          {
+            name: 'test.txt',
+            content: 'dGVzdA==',
+            type: 'text/plain',
+          },
+        ],
+        {
+          publishToFilecoin: true,
+          retries: 3,
+        }
+      );
     });
 
     it('should not use pieceHasher when publishToFilecoin is false', async () => {
@@ -238,56 +246,71 @@ describe('Upload Tool', () => {
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt',
-        publishToFilecoin: false
-      };
-      await tool.handler(input, {});
-
-      expect(mockUploadFiles).toHaveBeenCalledWith([{
-        name: 'test.txt',
-        content: 'dGVzdA==',
-        type: 'text/plain',
-      }], {
         publishToFilecoin: false,
-        retries: 3
-      });
+      };
+      await tool.handler(input);
+
+      expect(mockUploadFiles).toHaveBeenCalledWith(
+        [
+          {
+            name: 'test.txt',
+            content: 'dGVzdA==',
+            type: 'text/plain',
+          },
+        ],
+        {
+          publishToFilecoin: false,
+          retries: 3,
+        }
+      );
     });
 
     it('should handle base64 string input with detected MIME type', async () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
-        name: 'test.txt'
+        name: 'test.txt',
       };
 
-      await tool.handler(input, {});
+      await tool.handler(input);
 
-      expect(mockUploadFiles).toHaveBeenCalledWith([{
-        name: 'test.txt',
-        content: 'dGVzdA==',
-        type: 'text/plain'
-      }], {
-        publishToFilecoin: false,
-        retries: 3
-      });
+      expect(mockUploadFiles).toHaveBeenCalledWith(
+        [
+          {
+            name: 'test.txt',
+            content: 'dGVzdA==',
+            type: 'text/plain',
+          },
+        ],
+        {
+          publishToFilecoin: false,
+          retries: 3,
+        }
+      );
     });
 
     it('should use correct MIME type for known extensions', async () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
-        name: 'test.json'
+        name: 'test.json',
       };
 
-      await tool.handler(input, {});
+      await tool.handler(input);
 
-      expect(mockUploadFiles).toHaveBeenCalledWith([{
-        name: 'test.json',
-        content: 'dGVzdA==',
-        type: 'application/json'
-      }], {
-        publishToFilecoin: false,
-        retries: 3
-      });
+      expect(mockUploadFiles).toHaveBeenCalledWith(
+        [
+          {
+            name: 'test.json',
+            content: 'dGVzdA==',
+            type: 'application/json',
+          },
+        ],
+        {
+          publishToFilecoin: false,
+          retries: 3,
+        }
+      );
     });
 
     it('should use provided type over detected type', async () => {
@@ -295,19 +318,24 @@ describe('Upload Tool', () => {
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt',
-        type: 'application/custom'
+        type: 'application/custom',
       };
 
-      await tool.handler(input, {});
+      await tool.handler(input);
 
-      expect(mockUploadFiles).toHaveBeenCalledWith([{
-        name: 'test.txt',
-        content: 'dGVzdA==',
-        type: 'application/custom'
-      }], {
-        publishToFilecoin: false,
-        retries: 3
-      });
+      expect(mockUploadFiles).toHaveBeenCalledWith(
+        [
+          {
+            name: 'test.txt',
+            content: 'dGVzdA==',
+            type: 'application/custom',
+          },
+        ],
+        {
+          publishToFilecoin: false,
+          retries: 3,
+        }
+      );
     });
   });
 
@@ -315,55 +343,63 @@ describe('Upload Tool', () => {
     it('should use custom delegation if provided', async () => {
       vi.clearAllMocks();
       mockUploadFiles.mockResolvedValue({ url: 'test-url' });
-      
+
       const tool = uploadTool({
         signer: mockSigner,
         delegation: mockDelegation,
-        gatewayUrl: new URL('https://mock-gateway.url')
+        gatewayUrl: new URL('https://mock-gateway.url'),
       });
 
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt',
-        delegation: 'custom-delegation'
+        delegation: 'custom-delegation',
       };
 
-      await tool.handler(input, {});
-      
-      expect(mockUploadFiles).toHaveBeenCalledWith([{
-        name: 'test.txt',
-        content: 'dGVzdA==',
-        type: 'text/plain'
-      }], {
-        publishToFilecoin: false,
-        retries: 3
-      });
+      await tool.handler(input);
+
+      expect(mockUploadFiles).toHaveBeenCalledWith(
+        [
+          {
+            name: 'test.txt',
+            content: 'dGVzdA==',
+            type: 'text/plain',
+          },
+        ],
+        {
+          publishToFilecoin: false,
+          retries: 3,
+        }
+      );
     });
 
     it('should use custom gateway URL if provided', async () => {
-      const tool = uploadTool(mockStorageConfig);
+      const tool = uploadTool({
+        signer: mockSigner,
+        delegation: mockDelegation,
+        gatewayUrl: new URL('https://custom-gateway.url'),
+      });
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'test.txt',
-        gatewayUrl: 'https://custom-gateway.url'
+        gatewayUrl: 'https://custom-gateway.url',
       };
 
-      await tool.handler(input, {
-        storageConfig: {
-          signer: mockSigner,
-          delegation: mockDelegation,
-          gatewayUrl: new URL('https://custom-gateway.url')
-        }
-      });
+      await tool.handler(input);
 
-      expect(mockUploadFiles).toHaveBeenCalledWith([{
-        name: 'test.txt',
-        content: 'dGVzdA==',
-        type: 'text/plain'
-      }], {
-        publishToFilecoin: false,
-        retries: 3
-      });
+      expect(mockUploadFiles).toHaveBeenCalledWith(
+        [
+          {
+            name: 'test.txt',
+            content: 'dGVzdA==',
+            type: 'text/plain',
+          },
+        ],
+        {
+          publishToFilecoin: false,
+          retries: 3,
+        }
+      );
     });
 
     it('should use custom file name and type if provided', async () => {
@@ -374,16 +410,21 @@ describe('Upload Tool', () => {
         type: 'text/custom',
       };
 
-      await tool.handler(input, {});
+      await tool.handler(input);
 
-      expect(mockUploadFiles).toHaveBeenCalledWith([{
-        name: 'custom.txt',
-        content: 'dGVzdA==',
-        type: 'text/custom'
-      }], {
-        publishToFilecoin: false,
-        retries: 3
-      });
+      expect(mockUploadFiles).toHaveBeenCalledWith(
+        [
+          {
+            name: 'custom.txt',
+            content: 'dGVzdA==',
+            type: 'text/custom',
+          },
+        ],
+        {
+          publishToFilecoin: false,
+          retries: 3,
+        }
+      );
     });
   });
 
@@ -392,140 +433,160 @@ describe('Upload Tool', () => {
       const tool = uploadTool({
         ...mockStorageConfig,
         // @ts-ignore - This is intentional to test the error handling
-        delegation: undefined
+        delegation: undefined,
       });
 
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
-        name: 'test.txt'
+        name: 'test.txt',
       };
 
-      const result = await tool.handler(input, {});
+      const result = await tool.handler(input);
 
       expect(result).toEqual({
-        content: [{
-          type: 'text',
-          text: 'Upload failed: Delegation is required. Please provide it either in the request or via the DELEGATION environment variable.',
-          error: true
-        }]
+        content: [
+          {
+            type: 'text',
+            text: 'Upload failed: Delegation is required. Please provide it either in the request or via the DELEGATION environment variable.',
+            error: true,
+          },
+        ],
       });
     });
 
     it('should handle Error instances during upload', async () => {
-      vi.mocked(StorachaClient).mockImplementation(() => ({
-        config: mockStorageConfig,
-        initialized: true,
-        storage: mockStorageClient,
-        initialize: vi.fn().mockResolvedValue(undefined),
-        uploadFiles: vi.fn().mockRejectedValue(new Error('Upload failed')),
-        getStorage: vi.fn().mockReturnValue(mockStorageClient),
-        isConnected: vi.fn().mockReturnValue(true),
-        getConfig: vi.fn().mockReturnValue(mockStorageConfig),
-        getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
-        retrieve: vi.fn().mockResolvedValue({ url: 'test-url' })
-      } as unknown as StorachaClient));
+      vi.mocked(StorachaClient).mockImplementation(
+        () =>
+          ({
+            config: mockStorageConfig,
+            initialized: true,
+            storage: mockStorageClient,
+            initialize: vi.fn().mockResolvedValue(undefined),
+            uploadFiles: vi.fn().mockRejectedValue(new Error('Upload failed')),
+            getStorage: vi.fn().mockReturnValue(mockStorageClient),
+            isConnected: vi.fn().mockReturnValue(true),
+            getConfig: vi.fn().mockReturnValue(mockStorageConfig),
+            getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
+            retrieve: vi.fn().mockResolvedValue({ url: 'test-url' }),
+          }) as unknown as StorachaClient
+      );
 
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
-        name: 'test.txt'
+        name: 'test.txt',
       };
 
-      const result = await tool.handler(input, {});
+      const result = await tool.handler(input);
 
       expect(result).toEqual({
-        content: [{
-          type: 'text',
-          text: 'Upload failed: Upload failed',
-          error: true
-        }]
+        content: [
+          {
+            type: 'text',
+            text: 'Upload failed: Upload failed',
+            error: true,
+          },
+        ],
       });
     });
 
     it('should handle non-Error objects during upload', async () => {
-      vi.mocked(StorachaClient).mockImplementation(() => ({
-        config: mockStorageConfig,
-        initialized: true,
-        storage: mockStorageClient,
-        initialize: vi.fn().mockResolvedValue(undefined),
-        uploadFiles: vi.fn().mockRejectedValue('Unknown error'),
-        getStorage: vi.fn().mockReturnValue(mockStorageClient),
-        isConnected: vi.fn().mockReturnValue(true),
-        getConfig: vi.fn().mockReturnValue(mockStorageConfig),
-        getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
-        retrieve: vi.fn().mockResolvedValue({ url: 'test-url' })
-      } as unknown as StorachaClient));
+      vi.mocked(StorachaClient).mockImplementation(
+        () =>
+          ({
+            config: mockStorageConfig,
+            initialized: true,
+            storage: mockStorageClient,
+            initialize: vi.fn().mockResolvedValue(undefined),
+            uploadFiles: vi.fn().mockRejectedValue('Unknown error'),
+            getStorage: vi.fn().mockReturnValue(mockStorageClient),
+            isConnected: vi.fn().mockReturnValue(true),
+            getConfig: vi.fn().mockReturnValue(mockStorageConfig),
+            getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
+            retrieve: vi.fn().mockResolvedValue({ url: 'test-url' }),
+          }) as unknown as StorachaClient
+      );
 
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
-        name: 'test.txt'
+        name: 'test.txt',
       };
 
-      const result = await tool.handler(input, {});
+      const result = await tool.handler(input);
 
       expect(result).toEqual({
-        content: [{
-          type: 'text',
-          text: 'Upload failed: Unknown error',
-          error: true
-        }]
+        content: [
+          {
+            type: 'text',
+            text: 'Upload failed: Unknown error',
+            error: true,
+          },
+        ],
       });
     });
 
     it('should handle initialization errors', async () => {
-      vi.mocked(StorachaClient).mockImplementation(() => ({
-        config: mockStorageConfig,
-        initialized: false,
-        storage: mockStorageClient,
-        initialize: vi.fn().mockRejectedValue(new Error('Initialization failed')),
-        uploadFiles: vi.fn().mockResolvedValue({ url: 'test-url' }),
-        getStorage: vi.fn().mockReturnValue(mockStorageClient),
-        isConnected: vi.fn().mockReturnValue(true),
-        getConfig: vi.fn().mockReturnValue(mockStorageConfig),
-        getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
-        retrieve: vi.fn().mockResolvedValue({ url: 'test-url' })
-      } as unknown as StorachaClient));
+      vi.mocked(StorachaClient).mockImplementation(
+        () =>
+          ({
+            config: mockStorageConfig,
+            initialized: false,
+            storage: mockStorageClient,
+            initialize: vi.fn().mockRejectedValue(new Error('Initialization failed')),
+            uploadFiles: vi.fn().mockResolvedValue({ url: 'test-url' }),
+            getStorage: vi.fn().mockReturnValue(mockStorageClient),
+            isConnected: vi.fn().mockReturnValue(true),
+            getConfig: vi.fn().mockReturnValue(mockStorageConfig),
+            getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
+            retrieve: vi.fn().mockResolvedValue({ url: 'test-url' }),
+          }) as unknown as StorachaClient
+      );
 
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
-        name: 'test.txt'
+        name: 'test.txt',
       };
 
-      const result = await tool.handler(input, {});
+      const result = await tool.handler(input);
 
       expect(result).toEqual({
-        content: [{
-          type: 'text',
-          text: 'Upload failed: Initialization failed',
-          error: true
-        }]
+        content: [
+          {
+            type: 'text',
+            text: 'Upload failed: Initialization failed',
+            error: true,
+          },
+        ],
       });
     });
   });
 
   describe('base64 validation', () => {
     beforeEach(() => {
-      vi.mocked(StorachaClient).mockImplementation(() => ({
-        config: mockStorageConfig,
-        initialized: true,
-        storage: mockStorageClient,
-        initialize: vi.fn().mockResolvedValue(undefined),
-        uploadFiles: vi.fn().mockResolvedValue({ url: 'test-url' }),
-        getStorage: vi.fn().mockReturnValue(mockStorageClient),
-        isConnected: vi.fn().mockReturnValue(true),
-        getConfig: vi.fn().mockReturnValue(mockStorageConfig),
-        getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
-        retrieve: vi.fn().mockResolvedValue({ url: 'test-url' })
-      } as unknown as StorachaClient));
+      vi.mocked(StorachaClient).mockImplementation(
+        () =>
+          ({
+            config: mockStorageConfig,
+            initialized: true,
+            storage: mockStorageClient,
+            initialize: vi.fn().mockResolvedValue(undefined),
+            uploadFiles: vi.fn().mockResolvedValue({ url: 'test-url' }),
+            getStorage: vi.fn().mockReturnValue(mockStorageClient),
+            isConnected: vi.fn().mockReturnValue(true),
+            getConfig: vi.fn().mockReturnValue(mockStorageConfig),
+            getGatewayUrl: vi.fn().mockReturnValue('https://mock-gateway.url'),
+            retrieve: vi.fn().mockResolvedValue({ url: 'test-url' }),
+          }) as unknown as StorachaClient
+      );
     });
 
     it('should accept valid base64 string', () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'SGVsbG8gV29ybGQ=', // "Hello World" in base64 with proper padding
-        name: 'test.txt'
+        name: 'test.txt',
       };
       expect(tool.inputSchema.safeParse(input).success).toBe(true);
     });
@@ -534,7 +595,7 @@ describe('Upload Tool', () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'data:text/plain;base64,SGVsbG8gV29ybGQ=', // "Hello World" in base64 with data URL
-        name: 'test.txt'
+        name: 'test.txt',
       };
       expect(tool.inputSchema.safeParse(input).success).toBe(true);
     });
@@ -543,7 +604,7 @@ describe('Upload Tool', () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'not-base64!',
-        name: 'test.txt'
+        name: 'test.txt',
       };
       const result = tool.inputSchema.safeParse(input);
       expect(result.success).toBe(false);
@@ -556,7 +617,7 @@ describe('Upload Tool', () => {
       const tool = uploadTool(mockStorageConfig);
       const input = {
         file: 'SGVsbG8gV29ybGQ', // Missing padding
-        name: 'test.txt'
+        name: 'test.txt',
       };
       const result = tool.inputSchema.safeParse(input);
       expect(result.success).toBe(false);
@@ -565,4 +626,4 @@ describe('Upload Tool', () => {
       }
     });
   });
-}); 
+});

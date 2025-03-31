@@ -9,12 +9,12 @@ import { Delegation, Capabilities } from '@ucanto/interface';
 vi.mock('@web3-storage/w3up-client', () => {
   const mockClient = {
     addSpace: vi.fn().mockResolvedValue({
-      did: () => 'did:mock:space'
+      did: () => 'did:mock:space',
     }),
     setCurrentSpace: vi.fn().mockResolvedValue(undefined),
     uploadDirectory: vi.fn().mockResolvedValue({
-      toString: () => 'test-cid'
-    })
+      toString: () => 'test-cid',
+    }),
   };
 
   return {
@@ -23,15 +23,15 @@ vi.mock('@web3-storage/w3up-client', () => {
       addSpace = vi.fn().mockResolvedValue({ did: () => 'did:mock:space' });
       setCurrentSpace = vi.fn().mockResolvedValue(undefined);
       uploadDirectory = vi.fn().mockResolvedValue({
-        toString: () => 'test-cid'
+        toString: () => 'test-cid',
       });
       did = vi.fn().mockReturnValue('did:test');
-    }
+    },
   };
 });
 
 vi.mock('@web3-storage/w3up-client/stores/memory', () => ({
-  StoreMemory: class MockStoreMemory { }
+  StoreMemory: class MockStoreMemory {},
 }));
 
 vi.mock('@ucanto/principal/ed25519', () => ({
@@ -39,9 +39,9 @@ vi.mock('@ucanto/principal/ed25519', () => ({
     parse: vi.fn().mockReturnValue({
       did: () => 'did:key:mock',
       sign: vi.fn().mockResolvedValue(new Uint8Array()),
-      verify: vi.fn().mockResolvedValue(true)
-    } as unknown as Signer.EdSigner)
-  }
+      verify: vi.fn().mockResolvedValue(true),
+    } as unknown as Signer.EdSigner),
+  },
 }));
 
 vi.mock('../../src/core/storage/utils.js', () => ({
@@ -49,9 +49,9 @@ vi.mock('../../src/core/storage/utils.js', () => ({
     root: {
       did: () => 'did:key:mock',
       sign: vi.fn().mockResolvedValue(new Uint8Array()),
-      verify: vi.fn().mockResolvedValue(true)
-    }
-  } as unknown as Delegation<Capabilities>)
+      verify: vi.fn().mockResolvedValue(true),
+    },
+  } as unknown as Delegation<Capabilities>),
 }));
 
 vi.mock('@ipld/car', () => ({
@@ -61,10 +61,10 @@ vi.mock('@ipld/car', () => ({
       blocks: async function* () {
         yield { bytes: new Uint8Array(), cid: 'test-cid' };
       },
-      get: async () => ({ bytes: new Uint8Array(), cid: 'test-cid' })
-    })
+      get: async () => ({ bytes: new Uint8Array(), cid: 'test-cid' }),
+    }),
   },
-  __esModule: true
+  __esModule: true,
 }));
 
 describe('StorachaClient', () => {
@@ -79,15 +79,15 @@ describe('StorachaClient', () => {
   const mockSigner = {
     did: () => 'did:key:mock',
     sign: vi.fn().mockResolvedValue(new Uint8Array()),
-    verify: vi.fn().mockResolvedValue(true)
+    verify: vi.fn().mockResolvedValue(true),
   } as unknown as Signer.EdSigner;
 
   const mockDelegation = {
     root: {
       did: () => 'did:key:mock',
       sign: vi.fn().mockResolvedValue(new Uint8Array()),
-      verify: vi.fn().mockResolvedValue(true)
-    }
+      verify: vi.fn().mockResolvedValue(true),
+    },
   } as unknown as Delegation<Capabilities>;
 
   const mockGatewayUrl = new URL('https://custom-gateway.link');
@@ -95,7 +95,7 @@ describe('StorachaClient', () => {
   const testConfig: StorageConfig = {
     signer: mockSigner,
     delegation: mockDelegation,
-    gatewayUrl: mockGatewayUrl
+    gatewayUrl: mockGatewayUrl,
   };
 
   let client: StorachaClient;
@@ -190,7 +190,7 @@ describe('StorachaClient', () => {
       expect(config).toEqual({
         signer: testConfig.signer,
         delegation: testConfig.delegation,
-        gatewayUrl: new URL(DEFAULT_GATEWAY_URL)
+        gatewayUrl: new URL(DEFAULT_GATEWAY_URL),
       });
     });
   });
@@ -205,7 +205,7 @@ describe('StorachaClient', () => {
     const mockUploadFile: UploadFile = {
       name: 'test.txt',
       content: Buffer.from('test-data').toString('base64'),
-      type: 'text/plain'
+      type: 'text/plain',
     };
 
     beforeEach(async () => {
@@ -218,11 +218,13 @@ describe('StorachaClient', () => {
       expect(result).toEqual({
         root: 'test-cid',
         rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
-        files: [{
-          name: 'test.txt',
-          type: 'text/plain',
-          url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt')
-        }]
+        files: [
+          {
+            name: 'test.txt',
+            type: 'text/plain',
+            url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt'),
+          },
+        ],
       });
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
         [expect.any(File)],
@@ -232,14 +234,16 @@ describe('StorachaClient', () => {
 
     it('should throw error if client not initialized', async () => {
       const uninitializedClient = new StorachaClient(testConfig);
-      await expect(uninitializedClient.uploadFiles([mockUploadFile])).rejects.toThrow('Client not initialized');
+      await expect(uninitializedClient.uploadFiles([mockUploadFile])).rejects.toThrow(
+        'Client not initialized'
+      );
     });
 
     it('should handle non-base64 data as binary', async () => {
       const binaryFile: UploadFile = {
         name: 'test.bin',
         content: 'test-data',
-        type: 'application/octet-stream'
+        type: 'application/octet-stream',
       };
 
       const result = await client.uploadFiles([binaryFile]);
@@ -247,11 +251,13 @@ describe('StorachaClient', () => {
       expect(result).toEqual({
         root: 'test-cid',
         rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
-        files: [{
-          name: 'test.bin',
-          type: 'application/octet-stream',
-          url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.bin')
-        }]
+        files: [
+          {
+            name: 'test.bin',
+            type: 'application/octet-stream',
+            url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.bin'),
+          },
+        ],
       });
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
         [expect.any(File)],
@@ -285,11 +291,13 @@ describe('StorachaClient', () => {
       expect(result).toEqual({
         root: 'test-cid',
         rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
-        files: [{
-          name: 'test.txt',
-          type: 'text/plain',
-          url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt')
-        }]
+        files: [
+          {
+            name: 'test.txt',
+            type: 'text/plain',
+            url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt'),
+          },
+        ],
       });
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
         [expect.any(File)],
@@ -300,7 +308,7 @@ describe('StorachaClient', () => {
     it('should use detectMimeType when file type is not provided', async () => {
       const fileWithoutType: UploadFile = {
         name: 'test.txt',
-        content: Buffer.from('test-data').toString('base64')
+        content: Buffer.from('test-data').toString('base64'),
       };
 
       const result = await client.uploadFiles([fileWithoutType]);
@@ -308,11 +316,13 @@ describe('StorachaClient', () => {
       expect(result).toEqual({
         root: 'test-cid',
         rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
-        files: [{
-          name: 'test.txt',
-          type: undefined,
-          url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt')
-        }]
+        files: [
+          {
+            name: 'test.txt',
+            type: undefined,
+            url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt'),
+          },
+        ],
       });
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
         [expect.any(File)],
@@ -328,22 +338,24 @@ describe('StorachaClient', () => {
       expect(result).toHaveProperty('rootURL');
       expect(result).toHaveProperty('files');
       expect(Array.isArray(result.files)).toBe(true);
-      
+
       // Validate file entry structure
       const fileEntry = result.files[0];
       expect(fileEntry).toHaveProperty('name');
       expect(fileEntry).toHaveProperty('url');
       expect(fileEntry).toHaveProperty('type');
-      
+
       // Validate URL construction
-      expect(fileEntry.url).toBe(buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/${fileEntry.name}`));
+      expect(fileEntry.url).toBe(
+        buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/${fileEntry.name}`)
+      );
     });
 
     it('should handle large file uploads', async () => {
       const largeFile: UploadFile = {
         name: 'large.bin',
         content: Buffer.alloc(1024 * 1024).toString('base64'), // 1MB file
-        type: 'application/octet-stream'
+        type: 'application/octet-stream',
       };
 
       const result = await client.uploadFiles([largeFile]);
@@ -351,18 +363,20 @@ describe('StorachaClient', () => {
       expect(result).toEqual({
         root: 'test-cid',
         rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
-        files: [{
-          name: 'large.bin',
-          type: 'application/octet-stream',
-          url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/large.bin')
-        }]
+        files: [
+          {
+            name: 'large.bin',
+            type: 'application/octet-stream',
+            url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/large.bin'),
+          },
+        ],
       });
     });
 
     it('should handle concurrent uploads', async () => {
       const files: UploadFile[] = [
         { name: 'file1.txt', content: Buffer.from('test1').toString('base64'), type: 'text/plain' },
-        { name: 'file2.txt', content: Buffer.from('test2').toString('base64'), type: 'text/plain' }
+        { name: 'file2.txt', content: Buffer.from('test2').toString('base64'), type: 'text/plain' },
       ];
 
       const result = await client.uploadFiles(files);
@@ -370,8 +384,12 @@ describe('StorachaClient', () => {
       expect(result.files).toHaveLength(2);
       expect(result.files[0].name).toBe('file1.txt');
       expect(result.files[1].name).toBe('file2.txt');
-      expect(result.files[0].url).toBe(buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/file1.txt`));
-      expect(result.files[1].url).toBe(buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/file2.txt`));
+      expect(result.files[0].url).toBe(
+        buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/file1.txt`)
+      );
+      expect(result.files[1].url).toBe(
+        buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/file2.txt`)
+      );
     });
   });
 
@@ -380,7 +398,7 @@ describe('StorachaClient', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         arrayBuffer: async () => new TextEncoder().encode('test-data').buffer,
-        headers: new Headers({ 'content-type': 'text/plain' })
+        headers: new Headers({ 'content-type': 'text/plain' }),
       });
     });
 
@@ -392,11 +410,9 @@ describe('StorachaClient', () => {
       const result = await client.retrieve('test-cid');
       expect(result).toEqual({
         data: Buffer.from('test-data').toString('base64'),
-        type: 'text/plain'
+        type: 'text/plain',
       });
-      expect(global.fetch).toHaveBeenCalledWith(
-        new URL('/ipfs/test-cid', testConfig.gatewayUrl)
-      );
+      expect(global.fetch).toHaveBeenCalledWith(new URL('/ipfs/test-cid', testConfig.gatewayUrl));
     });
 
     it('should not throw error if client not initialized', async () => {
@@ -408,7 +424,7 @@ describe('StorachaClient', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 404,
-        statusText: 'Not Found'
+        statusText: 'Not Found',
       });
 
       await expect(client.retrieve('test-cid')).rejects.toThrow('HTTP error 404 Not Found');
@@ -430,19 +446,19 @@ describe('StorachaClient', () => {
       const client = new StorachaClient({
         signer: mockSigner,
         delegation: mockDelegation,
-        gatewayUrl: mockGatewayUrl
+        gatewayUrl: mockGatewayUrl,
       });
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
         arrayBuffer: () => Promise.resolve(Buffer.from('test-data')),
-        headers: new Headers()
+        headers: new Headers(),
       });
 
       const result = await client.retrieve('test-cid');
       expect(result).toEqual({
         data: Buffer.from('test-data').toString('base64'),
-        type: undefined
+        type: undefined,
       });
     });
   });
-}); 
+});

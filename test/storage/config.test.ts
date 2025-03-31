@@ -7,9 +7,9 @@ vi.mock('@ucanto/principal/ed25519', () => ({
     parse: vi.fn().mockReturnValue({
       did: () => 'did:key:test',
       sign: vi.fn(),
-      verify: vi.fn()
-    })
-  }
+      verify: vi.fn(),
+    }),
+  },
 }));
 
 vi.mock('../../src/core/storage/utils.js', () => ({
@@ -17,9 +17,9 @@ vi.mock('../../src/core/storage/utils.js', () => ({
     root: {
       did: () => 'did:key:test',
       sign: vi.fn(),
-      verify: vi.fn()
-    }
-  })
+      verify: vi.fn(),
+    },
+  }),
 }));
 
 describe('Storage Configuration', () => {
@@ -57,7 +57,7 @@ describe('Storage Configuration', () => {
   it('should throw error when private key is missing', async () => {
     // Ensure PRIVATE_KEY is not set
     delete process.env.PRIVATE_KEY;
-    
+
     await expect(loadConfig()).rejects.toThrow('PRIVATE_KEY environment variable is required');
   });
 
@@ -86,4 +86,4 @@ describe('Storage Configuration', () => {
     expect(config.delegation).toBeDefined();
     expect(config.gatewayUrl?.toString()).toBe('https://test-gateway.url/');
   });
-}); 
+});

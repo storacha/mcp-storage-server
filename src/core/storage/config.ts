@@ -22,6 +22,6 @@ export const loadConfig = async (): Promise<StorageConfig> => {
   return {
     signer,
     delegation,
-    gatewayUrl
+    gatewayUrl,
   };
 };

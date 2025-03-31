@@ -1,4 +1,11 @@
-import { StorageClient, StorageConfig, UploadResult, RetrieveResult, UploadOptions, UploadFile } from './types.js';
+import {
+  StorageClient,
+  StorageConfig,
+  UploadResult,
+  RetrieveResult,
+  UploadOptions,
+  UploadFile,
+} from './types.js';
 import { StoreMemory } from '@web3-storage/w3up-client/stores/memory';
 import * as Storage from '@web3-storage/w3up-client';
 import { DEFAULT_GATEWAY_URL } from './config.js';
@@ -14,7 +21,7 @@ export class StorachaClient implements StorageClient {
   constructor(config: StorageConfig) {
     this.config = {
       ...config,
-      gatewayUrl: config.gatewayUrl || new URL(DEFAULT_GATEWAY_URL)
+      gatewayUrl: config.gatewayUrl || new URL(DEFAULT_GATEWAY_URL),
     };
   }
 
@@ -86,7 +93,7 @@ export class StorachaClient implements StorageClient {
   /**
    * Upload files to Storacha network
    * The Storage Client needs to be initialized to upload files.
-   * 
+   *
    * @param files - Array of files to upload
    * @param options - Upload options
    * @returns The uploaded files' Content ID and URL
@@ -104,7 +111,7 @@ export class StorachaClient implements StorageClient {
       const fileObjects = files.map(file => {
         const buffer = Buffer.from(file.content, 'base64');
         return new File([buffer], file.name, {
-          type: file.type
+          type: file.type,
         });
       });
 
@@ -112,7 +119,7 @@ export class StorachaClient implements StorageClient {
         // If publishToFilecoin is false, we don't provide a pieceHasher, so the content is not pinned to the Filecoin Network
         ...(options.publishToFilecoin === false ? { pieceHasher: undefined } : {}),
         retries: options.retries ?? 3,
-        signal: options.signal
+        signal: options.signal,
       });
 
       return {
@@ -122,10 +129,10 @@ export class StorachaClient implements StorageClient {
           name: file.name,
           type: file.type,
           url: new URL(`/ipfs/${root}/${file.name}`, this.getGatewayUrl()).toString(),
-        }))
+        })),
       };
     } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'AbortError' || options.signal?.aborted) {
+      if ((error instanceof Error && error.name === 'AbortError') || options.signal?.aborted) {
         throw new Error('Upload aborted');
       }
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -151,7 +158,7 @@ export class StorachaClient implements StorageClient {
 
       return {
         data: base64Data,
-        type: contentType || undefined
+        type: contentType || undefined,
       };
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -160,5 +167,4 @@ export class StorachaClient implements StorageClient {
       throw new Error('Failed to retrieve file: Unknown error', { cause: error });
     }
   }
-
 }

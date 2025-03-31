@@ -72,20 +72,20 @@ export interface RetrieveResult {
 export interface StorageClient {
   /** Initialize the storage client */
   initialize(): Promise<void>;
-  
+
   /** Check if the client is connected and ready */
   isConnected(): boolean;
-  
+
   /**
    * Upload files to storage
    * @param files - Array of files to upload
    * @param options - Upload options
    */
   uploadFiles(files: UploadFile[], options?: UploadOptions): Promise<UploadResult>;
-  
+
   /**
    * Retrieve a file from storage
    * @param root - Root CID of the directory containing the file
    */
   retrieve(root: string): Promise<RetrieveResult>;
-} 
+}

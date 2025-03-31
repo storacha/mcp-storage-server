@@ -6,21 +6,21 @@ import { Delegation, Capabilities } from '@ucanto/interface';
 const mockSigner = {
   did: () => 'did:key:mock',
   sign: vi.fn().mockResolvedValue(new Uint8Array()),
-  verify: vi.fn().mockResolvedValue(true)
+  verify: vi.fn().mockResolvedValue(true),
 } as unknown as Signer.EdSigner;
 
 const mockDelegation = {
   root: {
     did: () => 'did:key:mock',
     sign: vi.fn().mockResolvedValue(new Uint8Array()),
-    verify: vi.fn().mockResolvedValue(true)
-  }
+    verify: vi.fn().mockResolvedValue(true),
+  },
 } as unknown as Delegation<Capabilities>;
 
 const mockConfig = {
   signer: mockSigner,
   delegation: mockDelegation,
-  gatewayUrl: new URL('https://test.gateway.com')
+  gatewayUrl: new URL('https://test.gateway.com'),
 };
 
 describe('identityTool', () => {
@@ -28,11 +28,12 @@ describe('identityTool', () => {
     const tool = identityTool(mockConfig);
     const result = await tool.handler();
     expect(result).toEqual({
-      content: [{
-        type: "text",
-        text: JSON.stringify({ id: 'did:key:mock' })
-      }]
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({ id: 'did:key:mock' }),
+        },
+      ],
     });
   });
-
-}); 
+});
