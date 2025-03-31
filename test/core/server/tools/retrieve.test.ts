@@ -3,6 +3,7 @@ import { retrieveTool } from '../../../../src/core/server/tools/retrieve.js';
 import { StorageConfig } from '../../../../src/core/storage/types.js';
 import { Signer } from '@ucanto/principal/ed25519';
 import { Delegation, Capabilities } from '@ucanto/interface';
+import { StorachaClient } from '../../../../src/core/storage/client.js';
 
 // Create mocks
 const mockSigner = {
@@ -122,6 +123,58 @@ describe('Retrieve Tool', () => {
       ],
     });
     expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
+  });
+
+  it('should handle explicitly thrown non-Error objects', async () => {
+    // Override global fetch to throw a non-Error object from within the client code
+    global.fetch = vi.fn().mockImplementation(() => {
+      // This simulates a situation where code inside client.retrieve throws a non-Error object
+      throw { custom: 'Non-standard error object' };
+    });
+
+    const tool = retrieveTool(mockStorageConfig);
+    const result = await tool.handler({ root: 'custom-error-cid' });
+
+    expect(result).toEqual({
+      content: [
+        {
+          error: true,
+          type: 'text',
+          text: 'Retrieve failed: Failed to retrieve file: Unknown error',
+        },
+      ],
+    });
+    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
+  });
+
+  it('should handle direct Error objects with custom messages', async () => {
+    // Mock the client to directly throw an Error with a custom message
+    // This test specifically targets the error instanceof Error ? error.message : 'Unknown error' branch
+    const errorWithMessage = new Error('Direct error message');
+
+    // Create a custom storage config with a client that will throw our error
+    const customStorageConfig = {
+      ...mockStorageConfig,
+      gatewayUrl: undefined, // This will cause getGatewayUrl to throw our error
+    };
+
+    // Override the getGatewayUrl method to throw our specific error
+    vi.spyOn(StorachaClient.prototype, 'getGatewayUrl').mockImplementation(() => {
+      throw errorWithMessage;
+    });
+
+    const tool = retrieveTool(customStorageConfig);
+    const result = await tool.handler({ root: 'error-message-cid' });
+
+    expect(result).toEqual({
+      content: [
+        {
+          error: true,
+          type: 'text',
+          text: 'Retrieve failed: Failed to retrieve file: Direct error message',
+        },
+      ],
+    });
   });
 
   it('should handle missing content-type header', async () => {

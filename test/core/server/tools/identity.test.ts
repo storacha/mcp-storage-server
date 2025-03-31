@@ -36,4 +36,56 @@ describe('identityTool', () => {
       ],
     });
   });
+
+  it('should handle errors gracefully', async () => {
+    // Create a configuration with a signer that throws an error
+    const errorConfig = {
+      ...mockConfig,
+      signer: {
+        did: () => {
+          throw new Error('Signer error');
+        },
+        sign: vi.fn(),
+        verify: vi.fn(),
+      } as unknown as Signer.EdSigner,
+    };
+
+    const tool = identityTool(errorConfig);
+    const result = await tool.handler();
+
+    expect(result).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: 'Identity check failed: Signer error',
+        },
+      ],
+    });
+  });
+
+  it('should handle unknown errors gracefully', async () => {
+    // Create a configuration with a signer that throws a non-Error object
+    const unknownErrorConfig = {
+      ...mockConfig,
+      signer: {
+        did: () => {
+          throw 'Unknown signer error'; // Not an Error instance
+        },
+        sign: vi.fn(),
+        verify: vi.fn(),
+      } as unknown as Signer.EdSigner,
+    };
+
+    const tool = identityTool(unknownErrorConfig);
+    const result = await tool.handler();
+
+    expect(result).toEqual({
+      content: [
+        {
+          type: 'text',
+          text: 'Identity check failed: Unknown error',
+        },
+      ],
+    });
+  });
 });

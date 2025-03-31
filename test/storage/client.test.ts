@@ -162,6 +162,28 @@ describe('StorachaClient', () => {
       vi.spyOn(client, 'initialize').mockRejectedValueOnce('Unknown error');
       await expect(client.initialize()).rejects.toThrow('Unknown error');
     });
+
+    it('should handle storage creation errors', async () => {
+      // Create a mock implementation that throws a non-Error object during storage creation
+      const createMock = vi.fn().mockImplementationOnce(() => {
+        throw 'Storage creation failed'; // Non-Error object
+      });
+
+      // Replace the storage creation function temporarily
+      const originalCreate = (await import('@web3-storage/w3up-client')).create;
+      const storageModule = await import('@web3-storage/w3up-client');
+      storageModule.create = createMock;
+
+      const testClient = new StorachaClient(testConfig);
+
+      // Test that the non-Error is properly handled
+      await expect(testClient.initialize()).rejects.toThrow(
+        'Failed to initialize storage client: Unknown error'
+      );
+
+      // Restore the original implementation
+      storageModule.create = originalCreate;
+    });
   });
 
   describe('getStorage', () => {
@@ -198,6 +220,22 @@ describe('StorachaClient', () => {
   describe('getGatewayUrl', () => {
     it('should return configured gateway URL', () => {
       expect(client.getGatewayUrl()).toBe(testConfig.gatewayUrl);
+    });
+
+    it('should throw an error if gateway URL is undefined', () => {
+      // Create a client with a configuration that has gatewayUrl explicitly set to undefined
+      // This is different from not providing it, which would use the default
+      const clientWithNoGateway = new StorachaClient({
+        ...testConfig,
+        gatewayUrl: undefined,
+      });
+
+      // Then forcefully override the internal config to make gatewayUrl undefined
+      // This simulates a situation where the gatewayUrl became undefined after initialization
+      clientWithNoGateway['config'].gatewayUrl = undefined;
+
+      // Now the getGatewayUrl method should throw when accessing an undefined gatewayUrl
+      expect(() => clientWithNoGateway.getGatewayUrl()).toThrow('Gateway URL is not set');
     });
   });
 
@@ -270,6 +308,19 @@ describe('StorachaClient', () => {
       vi.spyOn(client.getStorage()!, 'uploadDirectory').mockRejectedValueOnce(mockError);
 
       await expect(client.uploadFiles([mockUploadFile])).rejects.toThrow('Upload failed');
+    });
+
+    it('should reject immediately if abort signal is already aborted', async () => {
+      // Create a mock abort signal that is already aborted
+      const mockAbortSignal = { aborted: true } as AbortSignal;
+
+      // Pass the aborted signal to the upload function
+      await expect(
+        client.uploadFiles([mockUploadFile], { signal: mockAbortSignal })
+      ).rejects.toThrow('Upload aborted');
+
+      // The uploadDirectory should not have been called since we abort early
+      expect(client.getStorage()?.uploadDirectory).not.toHaveBeenCalled();
     });
 
     it('should handle upload abort', async () => {
@@ -459,6 +510,25 @@ describe('StorachaClient', () => {
         data: Buffer.from('test-data').toString('base64'),
         type: undefined,
       });
+    });
+
+    it('should handle error when getGatewayUrl fails', async () => {
+      // Create a client with an invalid gateway URL
+      const clientWithoutGateway = new StorachaClient({
+        signer: mockSigner,
+        delegation: mockDelegation,
+        gatewayUrl: undefined,
+      });
+
+      // Mock getGatewayUrl to throw an error
+      vi.spyOn(clientWithoutGateway, 'getGatewayUrl').mockImplementation(() => {
+        throw new Error('Gateway URL is not set');
+      });
+
+      // The retrieve method should catch and properly format this error
+      await expect(clientWithoutGateway.retrieve('test-cid')).rejects.toThrow(
+        'Failed to retrieve file: Gateway URL is not set'
+      );
     });
   });
 });
