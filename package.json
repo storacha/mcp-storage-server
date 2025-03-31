@@ -19,6 +19,7 @@
     "test": "pnpm typecheck && vitest run",
     "test:watch": "vitest watch",
     "test:coverage": "pnpm typecheck && vitest run --coverage",
+    "test:integration": "pnpm typecheck && vitest run --config test/integration/**.test.ts",
     "inspect": "pnpm build && npx @modelcontextprotocol/inspector node dist/index.js",
     "inspect:sse": "MCP_TRANSPORT_MODE=sse pnpm inspect",
     "inspect:stdio": "MCP_TRANSPORT_MODE=stdio pnpm inspect"
