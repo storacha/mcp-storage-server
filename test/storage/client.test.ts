@@ -12,6 +12,9 @@ vi.mock('@web3-storage/w3up-client', () => {
       did: () => 'did:mock:space',
     }),
     setCurrentSpace: vi.fn().mockResolvedValue(undefined),
+    uploadFile: vi.fn().mockResolvedValue({
+      toString: () => 'test-cid',
+    }),
     uploadDirectory: vi.fn().mockResolvedValue({
       toString: () => 'test-cid',
     }),
@@ -22,6 +25,9 @@ vi.mock('@web3-storage/w3up-client', () => {
     Client: class MockClient {
       addSpace = vi.fn().mockResolvedValue({ did: () => 'did:mock:space' });
       setCurrentSpace = vi.fn().mockResolvedValue(undefined);
+      uploadFile = vi.fn().mockResolvedValue({
+        toString: () => 'test-cid',
+      });
       uploadDirectory = vi.fn().mockResolvedValue({
         toString: () => 'test-cid',
       });
@@ -264,8 +270,8 @@ describe('StorachaClient', () => {
           },
         ],
       });
-      expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
-        [expect.any(File)],
+      expect(client.getStorage()?.uploadFile).toHaveBeenCalledWith(
+        expect.any(File),
         expect.any(Object)
       );
     });
@@ -297,15 +303,15 @@ describe('StorachaClient', () => {
           },
         ],
       });
-      expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
-        [expect.any(File)],
+      expect(client.getStorage()?.uploadFile).toHaveBeenCalledWith(
+        expect.any(File),
         expect.any(Object)
       );
     });
 
     it('should handle upload errors', async () => {
       const mockError = new Error('Upload failed');
-      vi.spyOn(client.getStorage()!, 'uploadDirectory').mockRejectedValueOnce(mockError);
+      vi.spyOn(client.getStorage()!, 'uploadFile').mockRejectedValueOnce(mockError);
 
       await expect(client.uploadFiles([mockUploadFile])).rejects.toThrow('Upload failed');
     });
@@ -319,19 +325,19 @@ describe('StorachaClient', () => {
         client.uploadFiles([mockUploadFile], { signal: mockAbortSignal })
       ).rejects.toThrow('Upload aborted');
 
-      // The uploadDirectory should not have been called since we abort early
-      expect(client.getStorage()?.uploadDirectory).not.toHaveBeenCalled();
+      // The uploadFile should not have been called since we abort early
+      expect(client.getStorage()?.uploadFile).not.toHaveBeenCalled();
     });
 
     it('should handle upload abort', async () => {
       const mockAbortError = new Error('Upload aborted');
-      vi.spyOn(client.getStorage()!, 'uploadDirectory').mockRejectedValueOnce(mockAbortError);
+      vi.spyOn(client.getStorage()!, 'uploadFile').mockRejectedValueOnce(mockAbortError);
 
       await expect(client.uploadFiles([mockUploadFile])).rejects.toThrow('Upload aborted');
     });
 
     it('should handle unknown error types during upload', async () => {
-      vi.spyOn(client.getStorage()!, 'uploadDirectory').mockRejectedValueOnce('Unknown error');
+      vi.spyOn(client.getStorage()!, 'uploadFile').mockRejectedValueOnce('Unknown error');
 
       await expect(client.uploadFiles([mockUploadFile])).rejects.toThrow('Unknown error');
     });
@@ -350,8 +356,8 @@ describe('StorachaClient', () => {
           },
         ],
       });
-      expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
-        [expect.any(File)],
+      expect(client.getStorage()?.uploadFile).toHaveBeenCalledWith(
+        expect.any(File),
         expect.objectContaining({ pieceHasher: undefined })
       );
     });
@@ -375,8 +381,8 @@ describe('StorachaClient', () => {
           },
         ],
       });
-      expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
-        [expect.any(File)],
+      expect(client.getStorage()?.uploadFile).toHaveBeenCalledWith(
+        expect.any(File),
         expect.any(Object)
       );
     });

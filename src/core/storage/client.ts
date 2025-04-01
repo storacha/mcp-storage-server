@@ -115,7 +115,16 @@ export class StorachaClient implements StorageClient {
         });
       });
 
-      const root = await this.storage.uploadDirectory(fileObjects, {
+      // TODO: Use uploadDirectory when we implement the change to collect and return CIDs of each file, and fix the retrieve tool to use paths instead of CIDs.
+      // const root = await this.storage.uploadDirectory(fileObjects, {
+      //   // If publishToFilecoin is false, we don't provide a pieceHasher, so the content is not pinned to the Filecoin Network
+      //   ...(options.publishToFilecoin === false ? { pieceHasher: undefined } : {}),
+      //   retries: options.retries ?? 3,
+      //   signal: options.signal,
+      // });
+
+      // TODO: Use uploadFile when we implement the change to collect and return CIDs of each file, and fix the retrieve tool to use paths instead of CIDs.
+      const root = await this.storage.uploadFile(fileObjects[0], {
         // If publishToFilecoin is false, we don't provide a pieceHasher, so the content is not pinned to the Filecoin Network
         ...(options.publishToFilecoin === false ? { pieceHasher: undefined } : {}),
         retries: options.retries ?? 3,
