@@ -3,7 +3,6 @@ import { registerTools } from './tools/index.js';
 import { startStdioTransport } from './transports/stdio.js';
 import { startSSETransport } from './transports/sse.js';
 import { McpServerConfig } from './types.js';
-import { loadConfig as loadMcpServerConfig } from './config.js';
 import { loadConfig as loadStorageConfig } from '../storage/config.js';
 /**
  * Creates the MCP Storage Server.
@@ -12,7 +11,7 @@ import { loadConfig as loadStorageConfig } from '../storage/config.js';
  *
  * @returns {Promise<McpServer>} The MCP server instance
  */
-async function startMCPServer(config: McpServerConfig) {
+async function startMCPServer(mcpConfig: McpServerConfig) {
   try {
     // Create a new MCP server instance
     const server = new McpServer({
@@ -26,9 +25,8 @@ async function startMCPServer(config: McpServerConfig) {
     registerTools(server, storageConfig);
     // registerPrompts(server);
 
-    const mcpConfig = loadMcpServerConfig();
     console.error(`Starting MCP Server in ${mcpConfig.transportMode} mode...`);
-    if (config.transportMode === 'sse') {
+    if (mcpConfig.transportMode === 'sse') {
       await startSSETransport(server, mcpConfig);
     } else {
       await startStdioTransport(server, mcpConfig);
