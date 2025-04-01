@@ -22,7 +22,7 @@ const isCI = process.env.CI === 'true';
   let tempFilePath: string;
   let serverProcess: any;
   let clientTransport: SSEClientTransport;
-  
+
   // Create a temporary test file and start server
   beforeAll(async () => {
     // Create a temporary file for testing
@@ -37,38 +37,39 @@ const isCI = process.env.CI === 'true';
         MCP_TRANSPORT_MODE: 'sse', // Set SSE mode
         PORT: TEST_PORT.toString(), // Set port for SSE server
       },
-      stdio: 'pipe'
+      stdio: 'pipe',
     });
-    
+
     // Log server output for debugging
     serverProcess.stdout.on('data', (data: Buffer) => {
       console.log(`Server stdout: ${data.toString()}`);
     });
-    
+
     serverProcess.stderr.on('data', (data: Buffer) => {
       console.error(`Server stderr: ${data.toString()}`);
     });
-    
+
     // Wait for server to start
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
     // Create client that connects to server in SSE mode
-    clientTransport = new SSEClientTransport(
-      new URL(`http://${TEST_HOST}:${TEST_PORT}/sse`)
-    );
-    
-    client = new Client({
-      name: 'test-client',
-      version: '1.0.0'
-    }, {
-      capabilities: {
-        tools: {}
+    clientTransport = new SSEClientTransport(new URL(`http://${TEST_HOST}:${TEST_PORT}/sse`));
+
+    client = new Client(
+      {
+        name: 'test-client',
+        version: '1.0.0',
+      },
+      {
+        capabilities: {
+          tools: {},
+        },
       }
-    });
-    
+    );
+
     // Connect to the server
     await client.connect(clientTransport);
-    
+
     // Wait a moment for the connection to establish
     await new Promise(resolve => setTimeout(resolve, 1000));
   }, 15000); // Increase timeout for server startup
@@ -80,10 +81,10 @@ const isCI = process.env.CI === 'true';
     } catch (e) {
       // Ignore errors if file doesn't exist
     }
-    
+
     // Close the transport
     await clientTransport.close();
-    
+
     // Kill the server process
     if (serverProcess) {
       serverProcess.kill();
@@ -92,7 +93,7 @@ const isCI = process.env.CI === 'true';
 
   it('should list available tools', async () => {
     const tools = await client.listTools();
-    
+
     // Check for tools directly in the response format
     expect(tools.tools.some(tool => tool.name === 'identity')).toBe(true);
     expect(tools.tools.some(tool => tool.name === 'upload')).toBe(true);
@@ -102,15 +103,15 @@ const isCI = process.env.CI === 'true';
   it('should get identity information', async () => {
     const response = await client.callTool({
       name: 'identity',
-      arguments: {} // Send an empty object
+      arguments: {}, // Send an empty object
     });
-    
-    const responseContent = response.content as Array<{type: string, text: string}>;
+
+    const responseContent = response.content as Array<{ type: string; text: string }>;
     expect(responseContent.length).toBeGreaterThan(0);
-    
+
     const content = responseContent[0];
     expect(content).toHaveProperty('text');
-    
+
     const responseData = JSON.parse(content.text);
     expect(responseData).toHaveProperty('id');
     expect(responseData.id).toContain('did:key:');
@@ -120,7 +121,7 @@ const isCI = process.env.CI === 'true';
     // Read file content and convert to base64 string
     const fileBuffer = await fs.readFile(tempFilePath);
     const fileContent = fileBuffer.toString('base64');
-    
+
     // Upload file
     const uploadResponse = await client.callTool({
       name: 'upload',
@@ -128,13 +129,13 @@ const isCI = process.env.CI === 'true';
         file: fileContent, // Send as base64 string
         name: 'test-file.txt',
         type: 'text/plain',
-      }
+      },
     });
-    
+
     // Type assertion for upload response
-    const uploadContent = (uploadResponse.content as Array<{type: string, text: string}>)[0];
+    const uploadContent = (uploadResponse.content as Array<{ type: string; text: string }>)[0];
     expect(uploadContent).toHaveProperty('text');
-    
+
     // Parse upload response
     const uploadResult = JSON.parse(uploadContent.text);
     expect(uploadResult).toHaveProperty('root');
@@ -152,18 +153,18 @@ const isCI = process.env.CI === 'true';
   it.skip('should retrieve a file', async () => {
     // Use the test CID from our config
     const testCid = TEST_CID;
-    
+
     const retrieveResponse = await client.callTool({
       name: 'retrieve',
       arguments: {
         root: testCid,
-      }
+      },
     });
-    
+
     // Type assertion for retrieve response
-    const retrieveContent = (retrieveResponse.content as Array<{type: string, text: string}>)[0];
+    const retrieveContent = (retrieveResponse.content as Array<{ type: string; text: string }>)[0];
     expect(retrieveContent).toHaveProperty('text');
-    
+
     // Parse retrieve response
     // const retrieveResult = JSON.parse(retrieveContent.text);
     // FIXME: Add assertions for the retrieve result
@@ -176,7 +177,7 @@ const isCI = process.env.CI === 'true';
         name: 'upload',
         arguments: {
           // Missing required parameters
-        }
+        },
       });
       // Should not reach here
       expect(true).toBe(false);
@@ -191,8 +192,8 @@ const isCI = process.env.CI === 'true';
       await client.callTool({
         name: 'retrieve',
         arguments: {
-          root: 'invalid-cid'
-        }
+          root: 'invalid-cid',
+        },
       });
       // Should not reach here
       expect(true).toBe(false);
@@ -200,4 +201,4 @@ const isCI = process.env.CI === 'true';
       expect(error).toBeDefined();
     }
   });
-}); 
+});

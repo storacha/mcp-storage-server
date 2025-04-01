@@ -20,7 +20,7 @@ A Model Context Protocol (MCP) server implementation for Storacha storage, enabl
   - CORS configuration
   - Input validation
   - Secure error handling
-  
+
 ## Usa Cases
 
 - **Document Storage & Analysis**: Securely upload and retrieve Blob documents.
@@ -32,58 +32,61 @@ A Model Context Protocol (MCP) server implementation for Storacha storage, enabl
 - **Web Application Backups**: Reliably store backup copies of web applications for disaster recovery.
 - **Machine Learning Datasets**: Efficiently manage and access large datasets used in machine learning workflows.
 
-
 ## Installation
 
 1. Clone the repository
+
    ```bash
    git clone https://github.com/storacha/mcp-storage-server.git
    cd mcp-storage-server
    ```
 
 2. Install dependencies
+
    ```bash
    pnpm install
    ```
 
 3. Create a `.env` file
+
    ```bash
    cp .env.example .env
    ```
 
 4. Configure the server using the following environment variables
 
-    ```env
-    # MCP Server Configuration
-    MCP_SERVER_PORT=3001                # Optional: The port the server will listen on (default: 3001)
-    MCP_SERVER_HOST=0.0.0.0             # Optional: The host address to bind to (default: 0.0.0.0)
-    MCP_CONNECTION_TIMEOUT=30000        # Optional: The connection timeout in milliseconds (default: 30000)
-    MCP_TRANSPORT_MODE=stdio            # Optional: The transport mode to use (stdio or sse) (default: stdio)
+   ```env
+   # MCP Server Configuration
+   MCP_SERVER_PORT=3001                # Optional: The port the server will listen on (default: 3001)
+   MCP_SERVER_HOST=0.0.0.0             # Optional: The host address to bind to (default: 0.0.0.0)
+   MCP_CONNECTION_TIMEOUT=30000        # Optional: The connection timeout in milliseconds (default: 30000)
+   MCP_TRANSPORT_MODE=stdio            # Optional: The transport mode to use (stdio or sse) (default: stdio)
 
-    # Security
-    SHARED_ACCESS_TOKEN=                # Optional: Set this to require authentication for uploads
+   # Security
+   SHARED_ACCESS_TOKEN=                # Optional: Set this to require authentication for uploads
 
-    # Storage Client Configuration
-    PRIVATE_KEY=                        # Required: The Storacha Agent private key that is authorized to upload files
-    DELEGATION=                         # Optional: The base64 encoded delegation that authorizes the Agent owner of the private key to upload files. If not set, MUST be provided for each upload request.
-    GATEWAY_URL=https://storacha.link   # Optional: Custom gateway URL for file retrieval (default: https://storacha.link)
+   # Storage Client Configuration
+   PRIVATE_KEY=                        # Required: The Storacha Agent private key that is authorized to upload files
+   DELEGATION=                         # Optional: The base64 encoded delegation that authorizes the Agent owner of the private key to upload files. If not set, MUST be provided for each upload request.
+   GATEWAY_URL=https://storacha.link   # Optional: Custom gateway URL for file retrieval (default: https://storacha.link)
 
-    # File Limits
-    MAX_FILE_SIZE=104857600             # Optional: Maximum file size in bytes (default: 100MB) 
-    ```
+   # File Limits
+   MAX_FILE_SIZE=104857600             # Optional: Maximum file size in bytes (default: 100MB)
+   ```
 
 ### Starting the Server
 
 Option 1 - Run the Stdio Server (recommended for local server communication)
+
 ```bash
 pnpm start:stdio
 ```
 
 Option 2 - Run the SSE Server (recommended for remote server communication)
+
 ```bash
 pnpm start:sse
 ```
-
 
 ## MCP Client Integration
 
@@ -92,7 +95,7 @@ import { McpClient } from '@modelcontextprotocol/sdk/client';
 
 const client = new McpClient({
   transport: 'sse',
-  url: 'http://localhost:3000'
+  url: 'http://localhost:3000',
 });
 
 // Get the agent's DID key
@@ -105,14 +108,14 @@ const result = await client.invoke('upload', {
   name: 'example.txt',
   type: 'text/plain',
   delegation: 'your-delegation-proof', // Optional: Provide delegation in the request
-  publishToFilecoin: true // Optional: Publish content to Filecoin network (default: false)
+  publishToFilecoin: true, // Optional: Publish content to Filecoin network (default: false)
 });
 
 // Upload a file using delegation from environment variable
 const result = await client.invoke('upload', {
   file: fileBuffer,
   name: 'example.txt',
-  type: 'text/plain'
+  type: 'text/plain',
 });
 ```
 
@@ -121,11 +124,13 @@ const result = await client.invoke('upload', {
 The MCP Inspector provides a visual interface for testing and debugging MCP servers. To test the Storacha MCP server:
 
 1. Start the MCP Inspector
+
 ```bash
 pnpm inspect:stdio
 ```
 
 2. Start the Storacha MCP server
+
 ```bash
 pnpm start:stdio
 ```
@@ -135,7 +140,6 @@ pnpm start:stdio
    - Enter the server URL (e.g., `http://localhost:3001`)
    - The Inspector will automatically discover available tools
    - You can test the upload and retrieve tools directly from the interface
-
 
 ### Debugging Tips
 
