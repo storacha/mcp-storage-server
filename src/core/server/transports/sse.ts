@@ -58,41 +58,41 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
     res.setHeader('Connection', 'keep-alive');
 
     // Create transport - handle before writing to response
+    let transport: SSEServerTransport | undefined = undefined;
     try {
-      const transport = new SSEServerTransport('/messages', res);
+      transport = new SSEServerTransport('/messages', res);
       connections.set(transport.sessionId, transport);
       console.error(`Creating SSE transport for session: ${transport.sessionId}`); // Create and store the transport keyed by session ID
 
       // Handle connection close
       req.on('close', () => {
-        console.error(`SSE connection closed for session: ${transport.sessionId}`);
-        connections.delete(transport.sessionId);
+        if (transport) {
+          console.error(`SSE connection closed for session: ${transport.sessionId}`);
+          connections.delete(transport.sessionId);
+          res.end();
+        }
       });
 
       // Connect transport to server - this must happen before sending any data
-      mcpServer
-        .connect(transport)
-        .then(() => {
-          console.error(`SSE connection established for session: ${transport.sessionId}`);
+      await mcpServer.connect(transport);
+      console.error(`SSE connection established for session: ${transport.sessionId}`);
 
-          // Send a valid JSON-RPC notification
-          // We'll use the 'system.notify' method to inform the client about the session
-          const jsonRpcNotification = {
-            jsonrpc: '2.0',
-            method: 'system.notify',
-            params: {
-              event: 'session_init',
-              sessionId: transport.sessionId,
-            },
-          };
+      // Send a valid JSON-RPC notification
+      // We'll use the 'system.notify' method to inform the client about the session
+      const jsonRpcNotification = {
+        jsonrpc: '2.0',
+        method: 'system.notify',
+        params: {
+          event: 'session_init',
+          sessionId: transport.sessionId,
+        },
+      };
 
-          res.write(`data: ${JSON.stringify(jsonRpcNotification)}\n\n`);
-        })
-        .catch((error: Error) => {
-          console.error(`Error connecting transport to server: ${error}`);
-          connections.delete(transport.sessionId);
-        });
+      res.write(`data: ${JSON.stringify(jsonRpcNotification)}\n\n`);
     } catch (error) {
+      if (transport) {
+        connections.delete(transport.sessionId);
+      }
       console.error(`Error creating SSE transport: ${error}`);
       res.status(500).send(`Internal server error: ${error}`);
     }
@@ -155,17 +155,7 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
 
     console.error(`Handling message for session: ${sessionId}`);
     try {
-      await transport.handlePostMessage(req, res).catch((error: Error) => {
-        console.error(`Error handling post message: ${error}`);
-        res.status(500).json({
-          jsonrpc: '2.0',
-          id: req.body?.id,
-          error: {
-            code: -32000,
-            message: `Internal server error: ${error.message}`,
-          },
-        });
-      });
+      await transport.handlePostMessage(req, res);
     } catch (error) {
       console.error(`Exception handling post message: ${error}`);
       res.status(500).json({

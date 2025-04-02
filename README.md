@@ -139,7 +139,7 @@ const response = await client.callTool({
   name: 'identity',
   arguments: {}, // Send an empty object
 });
-console.log('Agent DID:', JSON.parse(response.content[0].text).did);
+console.log('Agent DID:', JSON.parse(response.content[0].text));
 // output:  {"id":"did:key:z6MkjiNpY1QhuULQUkF5thrDbVz2fZwg49zYMg4a7zY1KDr9"}
 ```
 

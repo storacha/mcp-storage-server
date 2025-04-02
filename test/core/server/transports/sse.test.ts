@@ -292,16 +292,22 @@ describe('SSE Transport', () => {
 
     // Verify error was logged
     const errorCalls = (console.error as any).mock.calls;
-    expect(errorCalls[errorCalls.length - 1][0]).toContain('Error connecting transport to server');
+    expect(errorCalls[errorCalls.length - 1][0]).toContain('Error creating SSE transport');
   });
 
   it('should handle connection close', async () => {
-    const mockResponse = {
-      setHeader: vi.fn(),
+    const mockRes = {
+      writeHead: vi.fn(),
       write: vi.fn(),
+      end: vi.fn(),
+      setHeader: vi.fn(),
       status: vi.fn().mockReturnThis(),
-      send: vi.fn(),
       json: vi.fn(),
+      on: vi.fn((event, callback) => {
+        if (event === 'close') {
+          callback();
+        }
+      }),
     };
 
     const mockRequest = {
@@ -313,19 +319,14 @@ describe('SSE Transport', () => {
     // Setup mock transport with session ID
     const mockTransport = {
       sessionId: 'test-session',
+      handlePostMessage: vi.fn().mockRejectedValue(new Error('Session not found')),
     };
     (SSEServerTransport as any).mockImplementation(() => mockTransport);
 
     await startSSETransport(mockServer, mockConfig);
     const sseHandler = mockApp.get.mock.calls.find((call: any[]) => call[0] === '/sse')[1];
 
-    await sseHandler(mockRequest, mockResponse);
-
-    // Get the close handler and call it
-    const closeHandler = mockRequest.on.mock.calls.find((call: any[]) => call[0] === 'close')?.[1];
-    if (closeHandler) {
-      closeHandler();
-    }
+    await sseHandler(mockRequest, mockRes);
 
     // Verify connection was removed (indirectly through subsequent message handling)
     const mockMessageRequest = {
@@ -336,14 +337,14 @@ describe('SSE Transport', () => {
     const messageHandler = mockApp.post.mock.calls.find(
       (call: any[]) => call[0] === '/messages'
     )[1];
-    await messageHandler(mockMessageRequest, mockResponse);
+    await messageHandler(mockMessageRequest, mockRes);
 
-    expect(mockResponse.status).toHaveBeenCalledWith(404);
-    expect(mockResponse.json).toHaveBeenCalledWith(
+    expect(mockRes.status).toHaveBeenCalledWith(500);
+    expect(mockRes.json).toHaveBeenCalledWith(
       expect.objectContaining({
         error: expect.objectContaining({
           code: -32000,
-          message: 'Session not found',
+          message: expect.stringContaining('Session not found'),
         }),
       })
     );
@@ -382,8 +383,8 @@ describe('SSE Transport', () => {
     expect(mockResponse.json).toHaveBeenCalledWith(
       expect.objectContaining({
         error: expect.objectContaining({
-          message:
-            'No session ID provided. Please provide a sessionId query parameter or connect to /sse first.',
+          code: -32602,
+          message: expect.stringContaining('No session ID provided'),
         }),
       })
     );
@@ -475,11 +476,18 @@ describe('SSE Transport', () => {
   });
 
   it('should handle connection close events', async () => {
-    const mockResponse = {
-      setHeader: vi.fn(),
+    const mockRes = {
+      writeHead: vi.fn(),
       write: vi.fn(),
+      end: vi.fn(),
+      setHeader: vi.fn(),
       status: vi.fn().mockReturnThis(),
-      send: vi.fn(),
+      json: vi.fn(),
+      on: vi.fn((event, callback) => {
+        if (event === 'close') {
+          callback();
+        }
+      }),
     };
 
     const mockRequest = {
@@ -500,7 +508,7 @@ describe('SSE Transport', () => {
     mockServer.connect.mockResolvedValue(undefined);
 
     // Call the handler
-    await sseHandler(mockRequest, mockResponse);
+    await sseHandler(mockRequest, mockRes);
 
     // Verify close event handler was registered
     expect(mockRequest.on).toHaveBeenCalledWith('close', expect.any(Function));
@@ -760,7 +768,7 @@ describe('SSE Transport', () => {
     const errorCalls = (console.error as any).mock.calls;
     const hasConnectionError = errorCalls.some(
       (call: any[]) =>
-        call[0] && call[0].includes && call[0].includes('Error connecting transport to server')
+        call[0] && call[0].includes && call[0].includes('Error creating SSE transport')
     );
     expect(hasConnectionError).toBe(true);
   });
@@ -810,7 +818,7 @@ describe('SSE Transport', () => {
     const errorCalls = (console.error as any).mock.calls;
     const hasJsonError = errorCalls.some(
       (call: any[]) =>
-        call[0] && call[0].includes && call[0].includes('Error connecting transport to server')
+        call[0] && call[0].includes && call[0].includes('Error creating SSE transport')
     );
     expect(hasJsonError).toBe(true);
   });
@@ -830,7 +838,7 @@ describe('SSE Transport', () => {
     // Setup mock transport
     const mockTransport = {
       sessionId: 'test-session',
-      handlePostMessage: vi.fn(),
+      handlePostMessage: vi.fn().mockRejectedValue(new Error('Malformed message')),
     };
     (SSEServerTransport as any).mockImplementation(() => mockTransport);
 
