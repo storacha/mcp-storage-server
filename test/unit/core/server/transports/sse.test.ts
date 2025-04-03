@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import express from 'express';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { startSSETransport } from '../../../../src/core/server/transports/sse.js';
-import { McpServerConfig } from '../../../../src/core/server/types.js';
+import { startSSETransport } from '../../../../../src/core/server/transports/sse.js';
+import { McpServerConfig } from '../../../../../src/core/server/types.js';
 
 // Mock dependencies
 vi.mock('express');

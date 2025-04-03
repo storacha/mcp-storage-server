@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { retrieveTool } from '../../../../src/core/server/tools/retrieve.js';
-import { StorageConfig } from '../../../../src/core/storage/types.js';
+import { retrieveTool } from '../../../../../src/core/server/tools/retrieve.js';
+import { StorageConfig } from '../../../../../src/core/storage/types.js';
 import { Signer } from '@ucanto/principal/ed25519';
 import { Delegation, Capabilities } from '@ucanto/interface';
-import { StorachaClient } from '../../../../src/core/storage/client.js';
+import { StorachaClient } from '../../../../../src/core/storage/client.js';
 
 // Create mocks
 const mockSigner = {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { loadConfig } from '../../src/core/storage/config.js';
+import { loadConfig } from '../../../src/core/storage/config.js';
 
 // Mock the required dependencies
 vi.mock('@ucanto/principal/ed25519', () => ({
@@ -12,7 +12,7 @@ vi.mock('@ucanto/principal/ed25519', () => ({
   },
 }));
 
-vi.mock('../../src/core/storage/utils.js', () => ({
+vi.mock('../../../src/core/storage/utils.js', () => ({
   parseDelegation: vi.fn().mockResolvedValue({
     root: {
       did: () => 'did:key:test',

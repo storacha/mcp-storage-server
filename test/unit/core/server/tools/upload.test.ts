@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { uploadTool } from '../../../../src/core/server/tools/upload.js';
-import { StorachaClient } from '../../../../src/core/storage/client.js';
-import { StorageConfig } from '../../../../src/core/storage/types.js';
+import { uploadTool } from '../../../../../src/core/server/tools/upload.js';
+import { StorachaClient } from '../../../../../src/core/storage/client.js';
+import { StorageConfig } from '../../../../../src/core/storage/types.js';
 import { Capabilities, Delegation } from '@ucanto/interface';
 import { Signer } from '@ucanto/principal/ed25519';
 
-vi.mock('../../../../src/core/storage/utils.js', () => {
+vi.mock('../../../../../src/core/storage/utils.js', () => {
   return {
     detectMimeType: vi.fn().mockImplementation(fileName => {
       if (fileName.endsWith('.json')) return 'application/json';
@@ -72,7 +72,15 @@ const mockStorageClient = {
   agent: vi.fn(),
   connection: vi.fn(),
   signer: vi.fn(),
-  principal: vi.fn(),
+  principal: {
+    did: () => 'did:key:mock',
+    sign: vi.fn().mockResolvedValue(new Uint8Array()),
+    verify: vi.fn().mockResolvedValue(true),
+    toArchive: vi.fn().mockReturnValue({
+      did: 'did:key:mock',
+      key: new Uint8Array(),
+    }),
+  },
   type: vi.fn(),
   createDelegation: vi.fn(),
   revokeDelegation: vi.fn(),
@@ -85,14 +93,27 @@ const mockStorageClient = {
 const mockUploadFiles = vi.fn();
 const mockInitialize = vi.fn();
 
-vi.mock('../../../../src/core/storage/client.js', () => ({
+vi.mock('../../../../../src/core/storage/client.js', () => ({
   StorachaClient: vi.fn().mockImplementation(() => ({
     uploadFiles: mockUploadFiles,
     initialize: mockInitialize,
-    getStorage: vi.fn(),
-    isConnected: vi.fn(),
-    getConfig: vi.fn(),
-    getGatewayUrl: vi.fn(),
+    getStorage: vi.fn().mockReturnValue({
+      principal: {
+        did: () => 'did:key:mock',
+        sign: vi.fn().mockResolvedValue(new Uint8Array()),
+        verify: vi.fn().mockResolvedValue(true),
+        toArchive: vi.fn().mockReturnValue({
+          did: 'did:key:mock',
+          key: new Uint8Array(),
+        }),
+      },
+      uploadFile: vi.fn().mockResolvedValue('test-cid'),
+      uploadDirectory: vi.fn().mockResolvedValue('test-cid'),
+      addSpace: vi.fn(),
+    }),
+    isConnected: vi.fn().mockReturnValue(true),
+    getConfig: vi.fn().mockReturnValue(mockStorageConfig),
+    getGatewayUrl: vi.fn().mockReturnValue(new URL('https://mock-gateway.url')),
   })),
 }));
 

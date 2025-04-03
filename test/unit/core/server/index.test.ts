@@ -1,21 +1,24 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { startStdioTransport } from '../../../src/core/server/transports/stdio.js';
-import { startSSETransport } from '../../../src/core/server/transports/sse.js';
-import { McpServerConfig } from '../../../src/core/server/types.js';
-import startMCPServer from '../../../src/core/server/index.js';
-import { registerTools } from '../../../src/core/server/tools/index.js';
+import { startStdioTransport } from '../../../../src/core/server/transports/stdio.js';
+import { startSSETransport } from '../../../../src/core/server/transports/sse.js';
+import { McpServerConfig } from '../../../../src/core/server/types.js';
+import startMCPServer from '../../../../src/core/server/index.js';
+import { registerTools } from '../../../../src/core/server/tools/index.js';
+import { StorageConfig } from '../../../../src/core/storage/types.js';
+import { Signer } from '@ucanto/principal/ed25519';
+import { Delegation, Capabilities } from '@ucanto/interface';
 
 // Mock the transports
-vi.mock('../../../src/core/server/transports/stdio.js', () => ({
+vi.mock('../../../../src/core/server/transports/stdio.js', () => ({
   startStdioTransport: vi.fn().mockResolvedValue({ mcpServer: {}, transport: {} }),
 }));
 
-vi.mock('../../../src/core/server/transports/sse.js', () => ({
+vi.mock('../../../../src/core/server/transports/sse.js', () => ({
   startSSETransport: vi.fn().mockResolvedValue({}),
 }));
 
 // Mock the tools registration
-vi.mock('../../../src/core/server/tools/index.js', () => ({
+vi.mock('../../../../src/core/server/tools/index.js', () => ({
   registerTools: vi.fn(),
 }));
 
@@ -40,6 +43,20 @@ describe('MCP Server', () => {
     transportMode: 'stdio',
   };
 
+  const mockStorageConfig: StorageConfig = {
+    signer: {
+      sign: vi.fn().mockResolvedValue(new Uint8Array()),
+      did: vi.fn().mockReturnValue('did:test'),
+    } as unknown as Signer.EdSigner,
+    delegation: {
+      root: vi.fn().mockReturnValue('test-root'),
+      blocks: vi.fn().mockReturnValue([]),
+      cid: vi.fn().mockReturnValue('test-cid'),
+      bytes: vi.fn().mockReturnValue(new Uint8Array()),
+    } as unknown as Delegation<Capabilities>,
+    gatewayUrl: new URL('https://test-gateway.url'),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
@@ -48,7 +65,7 @@ describe('MCP Server', () => {
   it('should initialize server with stdio transport', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await startMCPServer(mockConfig);
+    await startMCPServer(mockConfig, mockStorageConfig);
 
     expect(registerTools).toHaveBeenCalled();
     expect(startStdioTransport).toHaveBeenCalled();
@@ -58,7 +75,7 @@ describe('MCP Server', () => {
   it('should initialize server with SSE transport', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await startMCPServer({ ...mockConfig, transportMode: 'sse' });
+    await startMCPServer({ ...mockConfig, transportMode: 'sse' }, mockStorageConfig);
 
     expect(registerTools).toHaveBeenCalled();
     expect(startSSETransport).toHaveBeenCalled();
@@ -68,7 +85,7 @@ describe('MCP Server', () => {
   it('should register tools on initialization', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await startMCPServer(mockConfig);
+    await startMCPServer(mockConfig, mockStorageConfig);
 
     expect(registerTools).toHaveBeenCalled();
   });
@@ -77,9 +94,9 @@ describe('MCP Server', () => {
     const mockError = new Error('Initialization failed');
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    (startStdioTransport as any).mockRejectedValueOnce(mockError);
+    vi.mocked(startStdioTransport).mockRejectedValueOnce(mockError);
 
-    await expect(startMCPServer(mockConfig)).rejects.toThrow(
+    await expect(startMCPServer(mockConfig, mockStorageConfig)).rejects.toThrow(
       'Failed to initialize storage server: Initialization failed'
     );
   });
@@ -87,7 +104,7 @@ describe('MCP Server', () => {
   it('should log server initialization', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await startMCPServer(mockConfig);
+    await startMCPServer(mockConfig, mockStorageConfig);
 
     expect(console.error).toHaveBeenCalledWith('Starting MCP Server in stdio mode...');
     expect(console.error).toHaveBeenCalledWith(

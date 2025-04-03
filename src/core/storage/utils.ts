@@ -1,7 +1,6 @@
-import { CarReader } from '@ipld/car';
-import { importDAG } from '@ucanto/core/delegation';
 import { Capabilities, Delegation } from '@ucanto/interface';
 import { lookup } from 'mime-types';
+import * as Proof from '@web3-storage/w3up-client/proof';
 
 /**
  * Parses a delegation from a base64 encoded CAR file
@@ -9,12 +8,8 @@ import { lookup } from 'mime-types';
  * @returns The parsed delegation
  */
 export async function parseDelegation(data: string): Promise<Delegation<Capabilities>> {
-  const blocks = [];
-  const reader = await CarReader.fromBytes(Buffer.from(data, 'base64'));
-  for await (const block of reader.blocks()) {
-    blocks.push(block);
-  }
-  return importDAG(blocks);
+  const proof = await Proof.parse(data);
+  return proof;
 }
 
 /**

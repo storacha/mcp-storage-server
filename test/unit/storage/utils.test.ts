@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectMimeType } from '../../src/core/storage/utils.js';
+import { detectMimeType } from '../../../src/core/storage/utils.js';
 
 describe('detectMimeType', () => {
   it('should detect common file types', () => {

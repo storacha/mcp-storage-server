@@ -3,7 +3,7 @@ import { registerTools } from './tools/index.js';
 import { startStdioTransport } from './transports/stdio.js';
 import { startSSETransport } from './transports/sse.js';
 import { McpServerConfig } from './types.js';
-import { loadConfig as loadStorageConfig } from '../storage/config.js';
+import { StorageConfig } from '../storage/types.js';
 /**
  * Creates the MCP Storage Server.
  * Registers all resources, tools, and prompts.
@@ -11,7 +11,7 @@ import { loadConfig as loadStorageConfig } from '../storage/config.js';
  *
  * @returns {Promise<McpServer>} The MCP server instance
  */
-async function startMCPServer(mcpConfig: McpServerConfig) {
+async function startMCPServer(mcpConfig: McpServerConfig, storageConfig: StorageConfig) {
   try {
     // Create a new MCP server instance
     const server = new McpServer({
@@ -21,7 +21,6 @@ async function startMCPServer(mcpConfig: McpServerConfig) {
     });
     // Register all resources, tools, and prompts
     // registerResources(server);
-    const storageConfig = await loadStorageConfig();
     registerTools(server, storageConfig);
     // registerPrompts(server);
 

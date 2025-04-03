@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { startStdioTransport } from '../../../../src/core/server/transports/stdio.js';
-import { McpServerConfig } from '../../../../src/core/server/types.js';
+import { startStdioTransport } from '../../../../../src/core/server/transports/stdio.js';
+import { McpServerConfig } from '../../../../../src/core/server/types.js';
 
 // Mock dependencies
 vi.mock('@modelcontextprotocol/sdk/server/stdio.js');

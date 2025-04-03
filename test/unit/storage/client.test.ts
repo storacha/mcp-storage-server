@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { DEFAULT_GATEWAY_URL } from '../../src/core/storage/config.js';
-import { StorachaClient } from '../../src/core/storage/client.js';
-import { UploadFile, StorageConfig } from '../../src/core/storage/types.js';
+import { DEFAULT_GATEWAY_URL } from '../../../src/core/storage/config.js';
+import { StorachaClient } from '../../../src/core/storage/client.js';
+import { UploadFile, StorageConfig } from '../../../src/core/storage/types.js';
 import { Signer } from '@ucanto/principal/ed25519';
 import { Delegation, Capabilities } from '@ucanto/interface';
 

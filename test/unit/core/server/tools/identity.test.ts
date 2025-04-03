@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { identityTool } from '../../../../src/core/server/tools/identity.js';
+import { identityTool } from '../../../../../src/core/server/tools/identity.js';
 import { Signer } from '@ucanto/principal/ed25519';
 import { Delegation, Capabilities } from '@ucanto/interface';
 

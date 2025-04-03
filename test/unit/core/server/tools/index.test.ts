@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { registerTools } from '../../../../src/core/server/tools/index.js';
+import { registerTools } from '../../../../../src/core/server/tools/index.js';
 import { Signer } from '@ucanto/principal/ed25519';
 import { Delegation, Capabilities } from '@ucanto/interface';
 
