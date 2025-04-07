@@ -5,6 +5,14 @@ import { Signer } from '@ucanto/principal/ed25519';
 import { Delegation, Capabilities } from '@ucanto/interface';
 import { StorachaClient } from '../../../../../src/core/storage/client.js';
 
+// // Mock isValidCID function from the utils.js file
+// vi.mock('../../../../../src/core/storage/utils.js', () => ({
+//   isValidCID: vi.fn().mockImplementation((cid) => {
+//     // Simple mock that considers any non-empty string a valid CID
+//     return typeof cid === 'string' && cid.trim().length > 0;
+//   }),
+// }));
+
 // Create mocks
 const mockSigner = {
   did: () => 'did:key:mock',

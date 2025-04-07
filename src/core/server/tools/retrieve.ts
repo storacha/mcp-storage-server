@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { StorachaClient } from '../../storage/client.js';
 import { StorageConfig } from 'src/core/storage/types.js';
+import { isValidCID } from 'src/core/storage/utils.js';
 
 type RetrieveInput = {
   filepath: string;
