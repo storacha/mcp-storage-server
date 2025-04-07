@@ -21,8 +21,6 @@ export interface UploadFile {
   name: string;
   /** Content of the file (base64 encoded) */
   content: string;
-  /** MIME type of the file */
-  type?: string;
 }
 
 /**
@@ -44,15 +42,15 @@ export interface UploadResult {
   /** Root CID of the directory containing the uploaded file */
   root: string;
   /** HTTP gateway URL for accessing the file */
-  rootURL: string;
+  url: string;
   /** List of files uploaded in the directory */
   files: {
     /** Name of the file */
     name: string;
+    /** CID of the file */
+    cid: string;
     /** URL of the file */
     url: string;
-    /** MIME type of the file */
-    type?: string;
   }[];
 }
 

@@ -11,6 +11,9 @@ importers:
       '@ipld/car':
         specifier: ^5.4.0
         version: 5.4.0
+      '@ipld/unixfs':
+        specifier: ^3.0.0
+        version: 3.0.0
       '@modelcontextprotocol/sdk':
         specifier: ^1.7.0
         version: 1.7.0
@@ -35,9 +38,6 @@ importers:
       express:
         specifier: ^4.21.2
         version: 4.21.2
-      mime-types:
-        specifier: ^3.0.1
-        version: 3.0.1
       multiformats:
         specifier: ^13.3.2
         version: 13.3.2

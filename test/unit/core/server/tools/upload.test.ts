@@ -228,7 +228,6 @@ describe('Upload Tool', () => {
           {
             name: 'test.txt',
             content: 'dGVzdA==',
-            type: 'text/plain',
           },
         ],
         {
@@ -252,7 +251,6 @@ describe('Upload Tool', () => {
           {
             name: 'test.txt',
             content: 'dGVzdA==',
-            type: 'text/plain',
           },
         ],
         {
@@ -276,7 +274,6 @@ describe('Upload Tool', () => {
           {
             name: 'test.txt',
             content: 'dGVzdA==',
-            type: 'text/plain',
           },
         ],
         {
@@ -300,7 +297,6 @@ describe('Upload Tool', () => {
           {
             name: 'test.txt',
             content: 'dGVzdA==',
-            type: 'text/plain',
           },
         ],
         {
@@ -324,7 +320,6 @@ describe('Upload Tool', () => {
           {
             name: 'test.json',
             content: 'dGVzdA==',
-            type: 'application/json',
           },
         ],
         {
@@ -349,7 +344,6 @@ describe('Upload Tool', () => {
           {
             name: 'test.txt',
             content: 'dGVzdA==',
-            type: 'application/custom',
           },
         ],
         {
@@ -384,7 +378,6 @@ describe('Upload Tool', () => {
           {
             name: 'test.txt',
             content: 'dGVzdA==',
-            type: 'text/plain',
           },
         ],
         {
@@ -413,7 +406,6 @@ describe('Upload Tool', () => {
           {
             name: 'test.txt',
             content: 'dGVzdA==',
-            type: 'text/plain',
           },
         ],
         {
@@ -428,7 +420,6 @@ describe('Upload Tool', () => {
       const input = {
         file: 'dGVzdA==', // "test" in base64 with proper padding
         name: 'custom.txt',
-        type: 'text/custom',
       };
 
       await tool.handler(input);
@@ -438,7 +429,6 @@ describe('Upload Tool', () => {
           {
             name: 'custom.txt',
             content: 'dGVzdA==',
-            type: 'text/custom',
           },
         ],
         {

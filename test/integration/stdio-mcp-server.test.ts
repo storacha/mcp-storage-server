@@ -4,7 +4,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
-import { getTestEnv, TEST_CID } from './test-config.js';
+import { getTestEnv, TEST_FILEPATH } from './test-config.js';
 
 // Get directory name in ESM
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -116,23 +116,21 @@ const isCI = process.env.CI === 'true';
     const uploadResult = JSON.parse(uploadContent.text);
     expect(uploadResult).toHaveProperty('root');
     expect(typeof uploadResult.root).toBe('string');
-    expect(uploadResult).toHaveProperty('rootURL');
+    expect(uploadResult).toHaveProperty('url');
     expect(uploadResult).toHaveProperty('files');
     expect(Array.isArray(uploadResult.files)).toBe(true);
     expect(uploadResult.files.length).toBeGreaterThan(0);
     expect(uploadResult.files[0]).toHaveProperty('name');
-    expect(uploadResult.files[0]).toHaveProperty('type');
     expect(uploadResult.files[0]).toHaveProperty('url');
+    expect(uploadResult.files[0]).toHaveProperty('cid');
   }, 30_000); // Increase the timeout for upload test
 
   it('should retrieve a file', async () => {
-    // This requires a valid CID from a previous upload
-    const testCid = TEST_CID;
-
+    // Call retrieve tool
     const retrieveResponse = await client.callTool({
       name: 'retrieve',
       arguments: {
-        root: testCid,
+        filepath: TEST_FILEPATH,
       },
     });
 
@@ -143,7 +141,7 @@ const isCI = process.env.CI === 'true';
     // Parse retrieve response
     // const retrieveResult = JSON.parse(retrieveContent.text);
     // FIXME: Add assertions for the retrieve result
-  }, 10000);
+  }, 30_000);
 
   it('should handle invalid upload parameters', async () => {
     // Try uploading without required parameters
@@ -162,12 +160,12 @@ const isCI = process.env.CI === 'true';
   });
 
   it('should handle invalid retrieve parameters', async () => {
-    // Try retrieving with an invalid CID
+    // Test with invalid CID format (missing filename)
     try {
       await client.callTool({
         name: 'retrieve',
         arguments: {
-          root: 'invalid-cid',
+          filepath: 'invalid-cid', // Missing the required filename
         },
       });
       // Should not reach here

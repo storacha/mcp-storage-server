@@ -1,6 +1,6 @@
 import { Capabilities, Delegation } from '@ucanto/interface';
-import { lookup } from 'mime-types';
 import * as Proof from '@storacha/client/proof';
+import { CID } from 'multiformats';
 
 /**
  * Parses a delegation from a base64 encoded CAR file
@@ -12,11 +12,11 @@ export async function parseDelegation(data: string): Promise<Delegation<Capabili
   return proof;
 }
 
-/**
- * Detect MIME type from filename
- * @param filename - Name of the file
- * @returns The detected MIME type or undefined if not detectable
- */
-export function detectMimeType(filename: string): string | undefined {
-  return lookup(filename) || undefined;
+export function isValidCID(cid: string): boolean {
+  try {
+    CID.parse(cid);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }

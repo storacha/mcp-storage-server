@@ -5,6 +5,14 @@ import { Signer } from '@ucanto/principal/ed25519';
 import { Delegation, Capabilities } from '@ucanto/interface';
 import { StorachaClient } from '../../../../../src/core/storage/client.js';
 
+// // Mock isValidCID function from the utils.js file
+// vi.mock('../../../../../src/core/storage/utils.js', () => ({
+//   isValidCID: vi.fn().mockImplementation((cid) => {
+//     // Simple mock that considers any non-empty string a valid CID
+//     return typeof cid === 'string' && cid.trim().length > 0;
+//   }),
+// }));
+
 // Create mocks
 const mockSigner = {
   did: () => 'did:key:mock',
@@ -48,7 +56,7 @@ describe('Retrieve Tool', () => {
     });
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ root: 'test-cid' });
+    const result = await tool.handler({ filepath: 'test-cid/file.txt' });
 
     expect(result).toEqual({
       content: [
@@ -73,7 +81,7 @@ describe('Retrieve Tool', () => {
     });
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ root: 'http-error-cid' });
+    const result = await tool.handler({ filepath: 'http-error-cid/file.txt' });
 
     expect(result).toEqual({
       content: [
@@ -92,7 +100,7 @@ describe('Retrieve Tool', () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ root: 'network-error-cid' });
+    const result = await tool.handler({ filepath: 'network-error-cid/file.txt' });
 
     expect(result).toEqual({
       content: [
@@ -111,7 +119,7 @@ describe('Retrieve Tool', () => {
     global.fetch = vi.fn().mockRejectedValue('Unknown error');
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ root: 'unknown-error-cid' });
+    const result = await tool.handler({ filepath: 'unknown-error-cid/file.txt' });
 
     expect(result).toEqual({
       content: [
@@ -133,7 +141,7 @@ describe('Retrieve Tool', () => {
     });
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ root: 'custom-error-cid' });
+    const result = await tool.handler({ filepath: 'custom-error-cid/file.txt' });
 
     expect(result).toEqual({
       content: [
@@ -164,7 +172,7 @@ describe('Retrieve Tool', () => {
     });
 
     const tool = retrieveTool(customStorageConfig);
-    const result = await tool.handler({ root: 'error-message-cid' });
+    const result = await tool.handler({ filepath: 'error-message-cid/file.txt' });
 
     expect(result).toEqual({
       content: [
@@ -186,7 +194,7 @@ describe('Retrieve Tool', () => {
     });
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ root: 'no-content-type-cid' });
+    const result = await tool.handler({ filepath: 'no-content-type-cid/file.txt' });
 
     expect(result).toEqual({
       content: [
@@ -204,6 +212,38 @@ describe('Retrieve Tool', () => {
   it('should validate input schema', async () => {
     const tool = retrieveTool(mockStorageConfig);
     expect(tool.inputSchema).toBeDefined();
-    expect(tool.inputSchema.shape.root).toBeDefined();
+    expect(tool.inputSchema.shape.filepath).toBeDefined();
+  });
+
+  it('should reject invalid filepath format without slash', async () => {
+    const tool = retrieveTool(mockStorageConfig);
+
+    // Parse the input through the schema to check validation
+    const schema = tool.inputSchema;
+    const result = schema.safeParse({ filepath: 'just-a-cid' });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject invalid filepath format with empty filename', async () => {
+    const tool = retrieveTool(mockStorageConfig);
+
+    // Parse the input through the schema to check validation
+    const schema = tool.inputSchema;
+    const result = schema.safeParse({ filepath: 'valid-cid/' });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('should accept valid filepath format', async () => {
+    const tool = retrieveTool(mockStorageConfig);
+
+    // Parse the input through the schema to check validation
+    const schema = tool.inputSchema;
+    const result = schema.safeParse({
+      filepath: 'bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
+    });
+
+    expect(result.success).toBe(true);
   });
 });

@@ -24,12 +24,12 @@ async function startMCPServer(mcpConfig: McpServerConfig, storageConfig: Storage
     registerTools(server, storageConfig);
     // registerPrompts(server);
 
-    console.error(`Starting MCP Server in ${mcpConfig.transportMode} mode...`);
     if (mcpConfig.transportMode === 'sse') {
       await startSSETransport(server, mcpConfig);
     } else {
       await startStdioTransport(server, mcpConfig);
     }
+    console.error(`MCP Server started in [${mcpConfig.transportMode}] mode.`);
 
     return server;
   } catch (error) {

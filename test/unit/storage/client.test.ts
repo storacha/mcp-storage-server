@@ -15,8 +15,19 @@ vi.mock('@storacha/client', () => {
     uploadFile: vi.fn().mockResolvedValue({
       toString: () => 'test-cid',
     }),
-    uploadDirectory: vi.fn().mockResolvedValue({
-      toString: () => 'test-cid',
+    uploadDirectory: vi.fn().mockImplementation((files: File[], options) => {
+      // Call the onDirectoryEntryLink callback for each file to populate the files array
+      if (options && typeof options.onDirectoryEntryLink === 'function') {
+        files.forEach(file => {
+          options.onDirectoryEntryLink({
+            name: file.name,
+            cid: { toString: () => 'test-cid' },
+          });
+        });
+      }
+      return Promise.resolve({
+        toString: () => 'test-cid',
+      });
     }),
   };
 
@@ -28,8 +39,19 @@ vi.mock('@storacha/client', () => {
       uploadFile = vi.fn().mockResolvedValue({
         toString: () => 'test-cid',
       });
-      uploadDirectory = vi.fn().mockResolvedValue({
-        toString: () => 'test-cid',
+      uploadDirectory = vi.fn().mockImplementation((files: File[], options) => {
+        // Call the onDirectoryEntryLink callback for each file to populate the files array
+        if (options && typeof options.onDirectoryEntryLink === 'function') {
+          files.forEach(file => {
+            options.onDirectoryEntryLink({
+              name: file.name,
+              cid: { toString: () => 'test-cid' },
+            });
+          });
+        }
+        return Promise.resolve({
+          toString: () => 'test-cid',
+        });
       });
       did = vi.fn().mockReturnValue('did:test');
     },
@@ -249,7 +271,6 @@ describe('StorachaClient', () => {
     const mockUploadFile: UploadFile = {
       name: 'test.txt',
       content: Buffer.from('test-data').toString('base64'),
-      type: 'text/plain',
     };
 
     beforeEach(async () => {
@@ -261,17 +282,17 @@ describe('StorachaClient', () => {
 
       expect(result).toEqual({
         root: 'test-cid',
-        rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
+        url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
         files: [
           {
             name: 'test.txt',
-            type: 'text/plain',
+            cid: 'test-cid',
             url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt'),
           },
         ],
       });
-      expect(client.getStorage()?.uploadFile).toHaveBeenCalledWith(
-        expect.any(File),
+      expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
+        expect.any(Array),
         expect.any(Object)
       );
     });
@@ -287,33 +308,35 @@ describe('StorachaClient', () => {
       const binaryFile: UploadFile = {
         name: 'test.bin',
         content: 'test-data',
-        type: 'application/octet-stream',
       };
 
       const result = await client.uploadFiles([binaryFile]);
 
       expect(result).toEqual({
         root: 'test-cid',
-        rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
+        url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
         files: [
           {
             name: 'test.bin',
-            type: 'application/octet-stream',
+            cid: 'test-cid',
             url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.bin'),
           },
         ],
       });
-      expect(client.getStorage()?.uploadFile).toHaveBeenCalledWith(
-        expect.any(File),
+      expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
+        expect.any(Array),
         expect.any(Object)
       );
     });
 
     it('should handle upload errors', async () => {
       const mockError = new Error('Upload failed');
-      vi.spyOn(client.getStorage()!, 'uploadFile').mockRejectedValueOnce(mockError);
+      const uploadDirectorySpy = vi
+        .spyOn(client.getStorage()!, 'uploadDirectory')
+        .mockRejectedValueOnce(mockError);
 
       await expect(client.uploadFiles([mockUploadFile])).rejects.toThrow('Upload failed');
+      expect(uploadDirectorySpy).toHaveBeenCalled();
     });
 
     it('should reject immediately if abort signal is already aborted', async () => {
@@ -326,20 +349,27 @@ describe('StorachaClient', () => {
       ).rejects.toThrow('Upload aborted');
 
       // The uploadFile should not have been called since we abort early
-      expect(client.getStorage()?.uploadFile).not.toHaveBeenCalled();
+      expect(client.getStorage()?.uploadDirectory).not.toHaveBeenCalled();
     });
 
     it('should handle upload abort', async () => {
       const mockAbortError = new Error('Upload aborted');
-      vi.spyOn(client.getStorage()!, 'uploadFile').mockRejectedValueOnce(mockAbortError);
+      mockAbortError.name = 'AbortError';
+      const uploadDirectorySpy = vi
+        .spyOn(client.getStorage()!, 'uploadDirectory')
+        .mockRejectedValueOnce(mockAbortError);
 
       await expect(client.uploadFiles([mockUploadFile])).rejects.toThrow('Upload aborted');
+      expect(uploadDirectorySpy).toHaveBeenCalled();
     });
 
     it('should handle unknown error types during upload', async () => {
-      vi.spyOn(client.getStorage()!, 'uploadFile').mockRejectedValueOnce('Unknown error');
+      const uploadDirectorySpy = vi
+        .spyOn(client.getStorage()!, 'uploadDirectory')
+        .mockRejectedValueOnce('Unknown error');
 
       await expect(client.uploadFiles([mockUploadFile])).rejects.toThrow('Unknown error');
+      expect(uploadDirectorySpy).toHaveBeenCalled();
     });
 
     it('should handle upload without Filecoin publishing', async () => {
@@ -347,17 +377,17 @@ describe('StorachaClient', () => {
 
       expect(result).toEqual({
         root: 'test-cid',
-        rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
+        url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
         files: [
           {
             name: 'test.txt',
-            type: 'text/plain',
+            cid: 'test-cid',
             url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt'),
           },
         ],
       });
-      expect(client.getStorage()?.uploadFile).toHaveBeenCalledWith(
-        expect.any(File),
+      expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
+        expect.any(Array),
         expect.objectContaining({ pieceHasher: undefined })
       );
     });
@@ -372,17 +402,17 @@ describe('StorachaClient', () => {
 
       expect(result).toEqual({
         root: 'test-cid',
-        rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
+        url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
         files: [
           {
             name: 'test.txt',
-            type: undefined,
+            cid: 'test-cid',
             url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt'),
           },
         ],
       });
-      expect(client.getStorage()?.uploadFile).toHaveBeenCalledWith(
-        expect.any(File),
+      expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
+        expect.any(Array),
         expect.any(Object)
       );
     });
@@ -392,15 +422,15 @@ describe('StorachaClient', () => {
 
       // Validate result structure
       expect(result).toHaveProperty('root');
-      expect(result).toHaveProperty('rootURL');
+      expect(result).toHaveProperty('url');
       expect(result).toHaveProperty('files');
       expect(Array.isArray(result.files)).toBe(true);
 
       // Validate file entry structure
       const fileEntry = result.files[0];
       expect(fileEntry).toHaveProperty('name');
+      expect(fileEntry).toHaveProperty('cid');
       expect(fileEntry).toHaveProperty('url');
-      expect(fileEntry).toHaveProperty('type');
 
       // Validate URL construction
       expect(fileEntry.url).toBe(
@@ -412,18 +442,17 @@ describe('StorachaClient', () => {
       const largeFile: UploadFile = {
         name: 'large.bin',
         content: Buffer.alloc(1024 * 1024).toString('base64'), // 1MB file
-        type: 'application/octet-stream',
       };
 
       const result = await client.uploadFiles([largeFile]);
 
       expect(result).toEqual({
         root: 'test-cid',
-        rootURL: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
+        url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
         files: [
           {
             name: 'large.bin',
-            type: 'application/octet-stream',
+            cid: 'test-cid',
             url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/large.bin'),
           },
         ],
@@ -432,8 +461,8 @@ describe('StorachaClient', () => {
 
     it('should handle concurrent uploads', async () => {
       const files: UploadFile[] = [
-        { name: 'file1.txt', content: Buffer.from('test1').toString('base64'), type: 'text/plain' },
-        { name: 'file2.txt', content: Buffer.from('test2').toString('base64'), type: 'text/plain' },
+        { name: 'file1.txt', content: Buffer.from('test1').toString('base64') },
+        { name: 'file2.txt', content: Buffer.from('test2').toString('base64') },
       ];
 
       const result = await client.uploadFiles(files);
@@ -441,6 +470,8 @@ describe('StorachaClient', () => {
       expect(result.files).toHaveLength(2);
       expect(result.files[0].name).toBe('file1.txt');
       expect(result.files[1].name).toBe('file2.txt');
+      expect(result.files[0].cid).toBe('test-cid');
+      expect(result.files[1].cid).toBe('test-cid');
       expect(result.files[0].url).toBe(
         buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/file1.txt`)
       );

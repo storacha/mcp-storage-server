@@ -4,7 +4,7 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
-import { TEST_CID, getTestEnv } from './test-config.js';
+import { getTestEnv, TEST_FILEPATH } from './test-config.js';
 
 // Get directory name in ESM
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -142,24 +142,21 @@ const isCI = process.env.CI === 'true';
     const uploadResult = JSON.parse(uploadContent.text);
     expect(uploadResult).toHaveProperty('root');
     expect(typeof uploadResult.root).toBe('string');
-    expect(uploadResult).toHaveProperty('rootURL');
+    expect(uploadResult).toHaveProperty('url');
     expect(uploadResult).toHaveProperty('files');
     expect(Array.isArray(uploadResult.files)).toBe(true);
     expect(uploadResult.files.length).toBeGreaterThan(0);
     expect(uploadResult.files[0]).toHaveProperty('name');
-    expect(uploadResult.files[0]).toHaveProperty('type');
     expect(uploadResult.files[0]).toHaveProperty('url');
+    expect(uploadResult.files[0]).toHaveProperty('cid');
   }, 30_000); // Increase the timeout for upload test
 
-  // Skip retrieve test in normal test runs as it requires external services
-  it.skip('should retrieve a file', async () => {
-    // Use the test CID from our config
-    const testCid = TEST_CID;
-
+  it('should retrieve a file', async () => {
+    // Call retrieve tool
     const retrieveResponse = await client.callTool({
       name: 'retrieve',
       arguments: {
-        root: testCid,
+        filepath: TEST_FILEPATH,
       },
     });
 
@@ -168,9 +165,11 @@ const isCI = process.env.CI === 'true';
     expect(retrieveContent).toHaveProperty('text');
 
     // Parse retrieve response
-    // const retrieveResult = JSON.parse(retrieveContent.text);
-    // FIXME: Add assertions for the retrieve result
-  }, 10000);
+    const retrieveResult = JSON.parse(retrieveContent.text);
+    expect(retrieveResult).toHaveProperty('data');
+    // MIME type may or may not be present depending on server configuration
+    // so we don't assert on it to make the test more robust
+  }, 30_000); // Increase timeout for retrieve test
 
   it('should handle invalid upload parameters', async () => {
     // Try uploading without required parameters
@@ -189,12 +188,12 @@ const isCI = process.env.CI === 'true';
   });
 
   it('should handle invalid retrieve parameters', async () => {
-    // Try retrieving with an invalid CID
+    // Test with invalid CID format (missing filename)
     try {
       await client.callTool({
         name: 'retrieve',
         arguments: {
-          root: 'invalid-cid',
+          filepath: 'invalid-cid', // Missing the required filename
         },
       });
       // Should not reach here

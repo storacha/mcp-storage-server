@@ -8,6 +8,7 @@ import {
 } from './types.js';
 import * as Storage from '@storacha/client';
 import { StoreMemory } from '@storacha/client/stores/memory';
+import { DirectoryEntryLink } from '@ipld/unixfs/directory';
 import {
   defaultHeaders,
   accessServiceConnection,
@@ -152,34 +153,33 @@ export class StorachaClient implements StorageClient {
 
       const fileObjects = files.map(file => {
         const buffer = Buffer.from(file.content, 'base64');
-        return new File([buffer], file.name, {
-          type: file.type,
-        });
+        return new File([buffer], file.name);
       });
 
-      // TODO: Use uploadDirectory when we implement the change to collect and return CIDs of each file, and fix the retrieve tool to use paths instead of CIDs.
-      // const root = await this.storage.uploadDirectory(fileObjects, {
-      //   // If publishToFilecoin is false, we don't provide a pieceHasher, so the content is not pinned to the Filecoin Network
-      //   ...(options.publishToFilecoin === false ? { pieceHasher: undefined } : {}),
-      //   retries: options.retries ?? 3,
-      //   signal: options.signal,
-      // });
+      const uploadedFiles: { name: string; cid: string }[] = [];
 
-      // TODO: Use uploadFile when we implement the change to collect and return CIDs of each file, and fix the retrieve tool to use paths instead of CIDs.
-      const root = await this.storage.uploadFile(fileObjects[0], {
+      const root = await this.storage.uploadDirectory(fileObjects, {
         // Only set pieceHasher as undefined if we don't want to publish to Filecoin
         ...(options.publishToFilecoin === true ? {} : { pieceHasher: undefined }),
         retries: options.retries ?? 3,
         signal: options.signal,
+        onDirectoryEntryLink: (link: DirectoryEntryLink) => {
+          if (link.name && link.name !== '') {
+            uploadedFiles.push({
+              name: link.name,
+              cid: link.cid.toString(),
+            });
+          }
+        },
       });
 
       return {
         root: root.toString(),
-        rootURL: new URL(`/ipfs/${root}`, this.getGatewayUrl()).toString(),
-        files: files.map(file => ({
+        url: new URL(`/ipfs/${root}`, this.getGatewayUrl()).toString(),
+        files: uploadedFiles.map(file => ({
           name: file.name,
-          type: file.type,
-          url: new URL(`/ipfs/${root}/${file.name}`, this.getGatewayUrl()).toString(),
+          cid: file.cid,
+          url: new URL(`/ipfs/${file.cid}/${file.name}`, this.getGatewayUrl()).toString(),
         })),
       };
     } catch (error: unknown) {
@@ -190,12 +190,17 @@ export class StorachaClient implements StorageClient {
 
   /**
    * Retrieve a file from the gateway
-   * @param root - Root CID of the directory containing the file
+   * @param filepath - Path in the format "cid/filename" where:
+   *               - cid: The Content Identifier of the directory
+   *               - filename: The name of the file to retrieve (required)
    * @returns The file data and metadata
+   * @throws Error if the response is not successful
    */
-  async retrieve(root: string): Promise<RetrieveResult> {
+  async retrieve(filepath: string): Promise<RetrieveResult> {
     try {
-      const response = await fetch(new URL(`/ipfs/${root}`, this.getGatewayUrl()));
+      // The format must be "cid/filename" where filename is required
+      // We pass it directly to the URL constructor
+      const response = await fetch(new URL(`/ipfs/${filepath}`, this.getGatewayUrl()));
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status} ${response.statusText}`);
       }

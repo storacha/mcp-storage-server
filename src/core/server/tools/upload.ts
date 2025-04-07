@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { StorachaClient } from '../../storage/client.js';
-import { detectMimeType, parseDelegation } from '../../storage/utils.js';
+import { parseDelegation } from '../../storage/utils.js';
 import { StorageConfig } from 'src/core/storage/types.js';
 
 const uploadInputSchema = z.object({
@@ -15,12 +15,6 @@ const uploadInputSchema = z.object({
   name: z
     .string()
     .describe('Name for the uploaded file (must include file extension for MIME type detection)'),
-  type: z
-    .string()
-    .optional()
-    .describe(
-      'MIME type of the file (optional, will be inferred from file extension if not provided)'
-    ),
   delegation: z
     .string()
     .optional()
@@ -62,14 +56,11 @@ export const uploadTool = (storageConfig: StorageConfig) => ({
       });
       await client.initialize();
 
-      const type = input.type || detectMimeType(input.name);
-
       const result = await client.uploadFiles(
         [
           {
             name: input.name,
             content: input.file,
-            type,
           },
         ],
         {
