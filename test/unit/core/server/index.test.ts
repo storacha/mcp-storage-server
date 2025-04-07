@@ -100,15 +100,4 @@ describe('MCP Server', () => {
       'Failed to initialize storage server: Initialization failed'
     );
   });
-
-  it('should log server initialization', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    await startMCPServer(mockConfig, mockStorageConfig);
-
-    expect(console.error).toHaveBeenCalledWith('Starting MCP Server in stdio mode...');
-    expect(console.error).toHaveBeenCalledWith(
-      'MCP Server initialized. Server is ready to handle requests'
-    );
-  });
 });

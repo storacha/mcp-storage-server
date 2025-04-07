@@ -57,7 +57,7 @@ describe('identityTool', () => {
       content: [
         {
           type: 'text',
-          text: 'Identity check failed: Signer error',
+          text: '{"name":"Error","message":"Identity check failed: Signer error"}',
         },
       ],
     });
@@ -83,7 +83,7 @@ describe('identityTool', () => {
       content: [
         {
           type: 'text',
-          text: 'Identity check failed: Unknown error',
+          text: '{"name":"Error","message":"Identity check failed: Unknown error","cause":null}',
         },
       ],
     });

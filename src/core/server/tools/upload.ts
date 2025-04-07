@@ -87,13 +87,16 @@ export const uploadTool = (storageConfig: StorageConfig) => ({
         ],
       };
     } catch (error) {
-      console.error('Error: handling upload:', error);
       return {
         content: [
           {
             error: true,
             type: 'text' as const,
-            text: `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            text: JSON.stringify({
+              name: error instanceof Error ? error.name : 'Error',
+              message: error instanceof Error ? error.message : 'Unknown error',
+              cause: error instanceof Error && error.cause ? (error.cause as Error).message : null,
+            }),
           },
         ],
       };

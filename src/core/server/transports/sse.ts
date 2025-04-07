@@ -42,9 +42,6 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
   // SSE endpoint
   // @ts-ignore
   app.get('/sse', async (req, res) => {
-    console.error(`Received SSE connection request from ${req.ip}`);
-    console.error(`Query parameters: ${JSON.stringify(req.query)}`);
-
     if (!mcpServer) {
       console.error('Server not initialized yet, rejecting SSE connection');
       return res.status(503).send('Server not initialized');
@@ -62,7 +59,6 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
     try {
       transport = new SSEServerTransport('/messages', res);
       connections.set(transport.sessionId, transport);
-      console.error(`Creating SSE transport for session: ${transport.sessionId}`); // Create and store the transport keyed by session ID
 
       // Handle connection close
       req.on('close', () => {
@@ -75,7 +71,6 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
 
       // Connect transport to server - this must happen before sending any data
       await mcpServer.connect(transport);
-      console.error(`SSE connection established for session: ${transport.sessionId}`);
 
       // Send a valid JSON-RPC notification
       // We'll use the 'system.notify' method to inform the client about the session
@@ -103,9 +98,6 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
   app.post('/messages', async (req, res) => {
     // Extract the session ID from the URL query parameters
     let sessionId = req.query.sessionId?.toString();
-
-    console.error(`Received message for sessionId ${sessionId}`);
-    console.error(`Message body: ${JSON.stringify(req.body)}`);
 
     if (!mcpServer) {
       console.error('Server not initialized yet');
@@ -153,7 +145,6 @@ export const startSSETransport = async (mcpServer: McpServer, config: McpServerC
       });
     }
 
-    console.error(`Handling message for session: ${sessionId}`);
     try {
       await transport.handlePostMessage(req, res);
     } catch (error) {

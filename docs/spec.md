@@ -19,19 +19,19 @@ An MCP server provides a standardized way for AI applications to discover and us
 ```mermaid
 flowchart LR
     A[AI Application] -->|Request| B[Storacha MCP Server]
-    B -->|Upload| C[w3up-client]
+    B -->|Upload| C[storacha-client]
     B -->|Retrieve| E[HTTP Gateway]
     C -->|Store| D[(Decentralized Storage)]
     D -->|Content-addressed Data| E
     C -->|Response| B
     E -->|Response| B
     B -->|Response| A
-    
+
     classDef client fill:#d4f1f9,stroke:#0078d7,stroke-width:2px
     classDef server fill:#ffe6cc,stroke:#d79b00,stroke-width:2px
     classDef storage fill:#d5e8d4,stroke:#82b366,stroke-width:2px
     classDef gateway fill:#fff2cc,stroke:#d6b656,stroke-width:2px
-    
+
     class A client
     class B server
     class C,D storage
@@ -107,7 +107,7 @@ The Storacha MCP server requires the following configuration:
 - **MCP_CONNECTION_TIMEOUT**: Connection timeout in milliseconds (default: 30000)
 - **MCP_TRANSPORT_MODE**: Transport mode to use (stdio or sse) (default: stdio)
 - **SHARED_ACCESS_TOKEN**: Optional access token used to authenticate upload operations (if not set, authentication is disabled)
-- **PRIVATE_KEY**: Required - Agent private key for w3up-client (for default delegation)
+- **PRIVATE_KEY**: Required - Agent private key for storacha-client (for default delegation)
 - **DELEGATION**: Required - The base64 encoded delegation that authorizes the Agent owner of the private key to upload files
 - **GATEWAY_URL**: Custom gateway URL for file retrieval (default: 'https://storacha.link')
 - **MAX_FILE_SIZE**: Maximum file size in bytes (default: 104857600 - 100MB)
@@ -116,7 +116,7 @@ The Storacha MCP server requires the following configuration:
 
 The server needs to interface with Storacha storage via:
 
-1. **w3up-client/storacha-client**: For uploading files to the Storacha Network and managing spaces
+1. **@storacha/client**: For uploading files to the Storacha Network and managing spaces
 2. **HTTP Trustless Gateway**: For retrieving files by CID
 
 ### MCP Transport Options
@@ -124,36 +124,39 @@ The server needs to interface with Storacha storage via:
 The Model Context Protocol (MCP) is transport-agnostic, meaning it can operate over different communication channels. The Storacha MCP server supports two transport modes:
 
 1. **Server-Sent Events (SSE)**: One-way, server-to-client streaming
-   - Pros: 
+
+   - Pros:
      - Real-time updates for file operation status
      - Lower latency for status notifications
      - Compatible with web browsers and HTTP clients
-   - Cons: 
+   - Cons:
      - One-way communication only
      - Requires HTTP server setup
-   - Best for: 
+   - Best for:
      - Web-based integrations
      - Real-time status updates
      - Browser-based clients
 
 2. **Standard I/O (stdio)**: Communication through process streams
-   - Pros: 
+   - Pros:
      - No network setup required
      - Simple for local tools and CLI applications
      - Direct process-to-process communication
-   - Cons: 
+   - Cons:
      - Limited to local machine
      - No network access
-   - Best for: 
+   - Best for:
      - CLI tools
      - Local development
      - Process integration
 
 The server can be configured to use either transport mode via the `MCP_TRANSPORT_MODE` environment variable:
+
 - `sse`: Uses Express with SSE for HTTP-based communication
 - `stdio`: Uses standard I/O streams for local communication
 
 The SSE implementation includes:
+
 - Express server for HTTP handling
 - CORS configuration for web access
 - Temporary session-based message routing
@@ -161,6 +164,7 @@ The SSE implementation includes:
 - Health check endpoint
 
 The stdio implementation provides:
+
 - Direct process communication
 - Simple message passing
 - No network dependencies
@@ -175,6 +179,7 @@ The Storacha MCP server utilizes the latest [MCP TypeScript SDK](https://github.
 The SSE server implementation consists of the following components:
 
 1. **Server Configuration**
+
    - Express application for HTTP server functionality
    - CORS enabled with appropriate headers for web access
    - OPTIONS request handling for preflight requests
@@ -182,27 +187,26 @@ The SSE server implementation consists of the following components:
    - Configurable via `MCP_CONNECTION_TIMEOUT` environment variable
 
 2. **Connection Management**
+
    - Maintains an in memory Map of active connections using session IDs
    - Each connection is associated with a unique SSEServerTransport instance
    - Automatic cleanup of closed connections
    - Idle connections are terminated after timeout period
 
 3. **Endpoints**
+
    - `/sse`: Establishes SSE connections
      - Sets appropriate SSE headers (Content-Type, Cache-Control, Connection)
      - Creates and stores new transport instance
      - Handles connection closure
      - Connects transport to MCP server
-   
    - `/messages`: Handles client-to-server communication
      - Routes messages to appropriate transport based on session ID
      - Processes messages through the connected transport
-   
    - `/health`: Provides server status information
      - Reports server initialization state
      - Shows active connection count
      - Lists connected session IDs
-   
    - `/`: Root endpoint with basic server information
      - Server name and version
      - Available endpoints
@@ -219,6 +223,7 @@ The SSE server implementation consists of the following components:
 The stdio server implementation consists of the following components:
 
 1. **Server Configuration**
+
    - Direct process-to-process communication using standard I/O streams
    - No network dependencies or HTTP server required
    - Simple message passing interface
@@ -226,6 +231,7 @@ The stdio server implementation consists of the following components:
    - Configurable via `MCP_CONNECTION_TIMEOUT` environment variable
 
 2. **Connection Management**
+
    - Single persistent connection through stdin/stdout
    - No need for session tracking or connection cleanup
    - Direct message routing to MCP server
@@ -233,6 +239,7 @@ The stdio server implementation consists of the following components:
    - Idle connections are terminated after timeout period
 
 3. **Message Handling**
+
    - Reads JSON-RPC messages from stdin
    - Processes messages through MCP server
    - Writes responses to stdout
@@ -253,9 +260,9 @@ The MCP SDK uses a standardized error handling approach with the following forma
 ```typescript
 // Error response format
 {
-  content: [{ 
-    type: "text", 
-    text: "Error message here" 
+  content: [{
+    type: "text",
+    text: "Error message here"
   }],
   isError: true
 }
@@ -277,12 +284,14 @@ All errors are consistently formatted to follow the MCP specification, including
 The server implements the following mechanisms to handle large file uploads:
 
 1. **File Size Limits**
+
    - Default maximum file size: 100MB (104857600 bytes)
    - Configurable via `MAX_FILE_SIZE` environment variable
    - Size validation occurs before processing to prevent server overload
    - Returns standardized MCP error format when size limit is exceeded
 
 2. **Connection Timeouts**
+
    - Default connection timeout: 30 seconds
    - Configurable via `MCP_CONNECTION_TIMEOUT` environment variable
    - Applies to both SSE and stdio transports
@@ -295,6 +304,7 @@ The server implements the following mechanisms to handle large file uploads:
    - Graceful handling of connection timeouts
 
 Note: The following features are planned for future implementation:
+
 - Stream-based processing for large files
 - Chunked upload support
 - Memory management optimizations
@@ -320,10 +330,12 @@ Regardless of the approach, integration typically follows these steps:
 1. **Client Initialization**: Configure the client with the Storacha MCP server URL and authentication if required.
 
 2. **Transport Selection**: Choose the appropriate transport mode:
+
    - For web-based clients: Use SSE transport with `/sse` and `/messages` endpoints
    - For local tools: Use stdio transport for direct process communication
 
 3. **Operation Invocation**: Call the upload or retrieve operations with appropriate parameters:
+
    - For SSE transport: Send JSON-RPC messages to `/messages` endpoint
    - For stdio transport: Send JSON-RPC messages through stdin
 
@@ -347,11 +359,13 @@ The Storacha MCP server can be deployed using various approaches:
 The Storacha MCP server implements these security measures:
 
 1. **Authentication**
+
    - Private key authentication for storage operations
    - Delegation proof validation for storage access
    - Optional shared access token for API access
 
 2. **Delegation Requirements**
+
    - A delegation proof is required for all upload operations
    - Delegation can be provided in two ways:
      - Via the `DELEGATION` environment variable (server-wide setting)

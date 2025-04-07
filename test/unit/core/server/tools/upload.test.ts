@@ -468,7 +468,7 @@ describe('Upload Tool', () => {
         content: [
           {
             type: 'text',
-            text: 'Upload failed: Delegation is required. Please provide it either in the request or via the DELEGATION environment variable.',
+            text: '{"name":"Error","message":"Delegation is required. Please provide it either in the request or via the DELEGATION environment variable.","cause":null}',
             error: true,
           },
         ],
@@ -504,7 +504,7 @@ describe('Upload Tool', () => {
         content: [
           {
             type: 'text',
-            text: 'Upload failed: Upload failed',
+            text: '{"name":"Error","message":"Upload failed","cause":null}',
             error: true,
           },
         ],
@@ -540,7 +540,7 @@ describe('Upload Tool', () => {
         content: [
           {
             type: 'text',
-            text: 'Upload failed: Unknown error',
+            text: '{"name":"Error","message":"Unknown error","cause":null}',
             error: true,
           },
         ],
@@ -576,7 +576,7 @@ describe('Upload Tool', () => {
         content: [
           {
             type: 'text',
-            text: 'Upload failed: Initialization failed',
+            text: '{"name":"Error","message":"Initialization failed","cause":null}',
             error: true,
           },
         ],

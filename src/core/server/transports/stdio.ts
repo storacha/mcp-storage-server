@@ -29,12 +29,8 @@ export const startStdioTransport = async (mcpServer: McpServer, config: McpServe
     // Create StdIO transport
     const transport = new StdioServerTransport();
 
-    console.error('Starting MCP server in stdio mode...');
-
     // Connect transport to MCP server
     await mcpServer.connect(transport);
-
-    console.error('MCP server running in stdio mode');
 
     return { mcpServer, transport };
   } catch (error) {

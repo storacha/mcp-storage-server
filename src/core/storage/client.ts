@@ -6,9 +6,33 @@ import {
   UploadOptions,
   UploadFile,
 } from './types.js';
-import { StoreMemory } from '@web3-storage/w3up-client/stores/memory';
-import * as Storage from '@web3-storage/w3up-client';
+import * as Storage from '@storacha/client';
+import { StoreMemory } from '@storacha/client/stores/memory';
+import {
+  defaultHeaders,
+  accessServiceConnection,
+  uploadServiceConnection,
+  filecoinServiceConnection,
+  gatewayServiceConnection,
+} from '@storacha/client/service';
 import { DEFAULT_GATEWAY_URL } from './config.js';
+import { Principal } from '@ucanto/interface';
+import { DID } from '@ucanto/core';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+/**
+ * The Storage Service Identifier which will verify the delegation.
+ */
+const STORAGE_SERVICE_DID = 'did:web:web3.storage';
+
+const packageJson = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf-8'));
+
+/**
+ * Add the major version of the MCP server to the headers of the Storacha client.
+ * It needs to be done only once.
+ */
+defaultHeaders['X-Client'] += ` MCP/${packageJson.version.split('.')[0]}`;
 
 /**
  * Implementation of the StorageClient interface for Storacha network
@@ -17,12 +41,15 @@ export class StorachaClient implements StorageClient {
   private config: StorageConfig;
   private initialized: Promise<void> | null = null;
   private storage: Storage.Client | null = null;
+  /** Service ID that will be used to verify the delegation */
+  private serviceID: Principal;
 
   constructor(config: StorageConfig) {
     this.config = {
       ...config,
       gatewayUrl: config.gatewayUrl || new URL(DEFAULT_GATEWAY_URL),
     };
+    this.serviceID = DID.parse(STORAGE_SERVICE_DID);
   }
 
   /**
@@ -44,7 +71,22 @@ export class StorachaClient implements StorageClient {
     this.initialized = (async () => {
       try {
         const store = new StoreMemory();
-        this.storage = await Storage.create({ principal: this.config.signer, store });
+        this.storage = await Storage.create({
+          principal: this.config.signer,
+          store,
+          serviceConf: {
+            access: accessServiceConnection({
+              id: this.serviceID,
+            }),
+            upload: uploadServiceConnection({
+              id: this.serviceID,
+            }),
+            filecoin: filecoinServiceConnection({
+              id: this.serviceID,
+            }),
+            gateway: gatewayServiceConnection(),
+          },
+        });
         await this.storage.addSpace(this.config.delegation);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
@@ -141,11 +183,8 @@ export class StorachaClient implements StorageClient {
         })),
       };
     } catch (error: unknown) {
-      if ((error instanceof Error && error.name === 'AbortError') || options.signal?.aborted) {
-        throw new Error('Upload aborted');
-      }
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Upload failed: ${message}`);
+      console.error(error);
+      throw error;
     }
   }
 

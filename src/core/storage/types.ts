@@ -5,7 +5,7 @@ import { Signer } from '@ucanto/principal/ed25519';
  * Configuration options for the storage client
  */
 export interface StorageConfig {
-  /** Private key for w3up-client authentication */
+  /** Private key for storacha-client authentication */
   signer: Signer.EdSigner;
   /** Delegation for storage access */
   delegation: Delegation<Capabilities>;

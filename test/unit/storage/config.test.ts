@@ -8,6 +8,10 @@ vi.mock('@ucanto/principal/ed25519', () => ({
       did: () => 'did:key:test',
       sign: vi.fn(),
       verify: vi.fn(),
+      toArchive: vi.fn().mockReturnValue({
+        did: 'did:key:test',
+        key: new Uint8Array(),
+      }),
     }),
   },
 }));

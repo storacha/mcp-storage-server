@@ -6,7 +6,7 @@ import { Signer } from '@ucanto/principal/ed25519';
 import { Delegation, Capabilities } from '@ucanto/interface';
 
 // Mock dependencies
-vi.mock('@web3-storage/w3up-client', () => {
+vi.mock('@storacha/client', () => {
   const mockClient = {
     addSpace: vi.fn().mockResolvedValue({
       did: () => 'did:mock:space',
@@ -36,7 +36,7 @@ vi.mock('@web3-storage/w3up-client', () => {
   };
 });
 
-vi.mock('@web3-storage/w3up-client/stores/memory', () => ({
+vi.mock('@storacha/client/stores/memory', () => ({
   StoreMemory: class MockStoreMemory {},
 }));
 
@@ -176,8 +176,8 @@ describe('StorachaClient', () => {
       });
 
       // Replace the storage creation function temporarily
-      const originalCreate = (await import('@web3-storage/w3up-client')).create;
-      const storageModule = await import('@web3-storage/w3up-client');
+      const originalCreate = (await import('@storacha/client')).create;
+      const storageModule = await import('@storacha/client');
       storageModule.create = createMock;
 
       const testClient = new StorachaClient(testConfig);

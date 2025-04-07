@@ -22,7 +22,11 @@ export const identityTool = (storageConfig: StorageConfig) => ({
         content: [
           {
             type: 'text' as const,
-            text: `Identity check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            text: JSON.stringify({
+              name: 'Error',
+              message: `Identity check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              cause: error instanceof Error ? (error.cause as Error | null) : null,
+            }),
           },
         ],
       };

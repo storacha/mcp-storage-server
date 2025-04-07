@@ -1,6 +1,6 @@
 import { Capabilities, Delegation } from '@ucanto/interface';
 import { lookup } from 'mime-types';
-import * as Proof from '@web3-storage/w3up-client/proof';
+import * as Proof from '@storacha/client/proof';
 
 /**
  * Parses a delegation from a base64 encoded CAR file
@@ -8,7 +8,7 @@ import * as Proof from '@web3-storage/w3up-client/proof';
  * @returns The parsed delegation
  */
 export async function parseDelegation(data: string): Promise<Delegation<Capabilities>> {
-  const proof = await Proof.parse(data);
+  const proof = await Proof.parse(data.replaceAll('\n', ''));
   return proof;
 }
 

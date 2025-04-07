@@ -80,7 +80,7 @@ describe('Retrieve Tool', () => {
         {
           error: true,
           type: 'text',
-          text: 'Retrieve failed: Failed to retrieve file: HTTP error 404 Not Found',
+          text: '{"name":"Error","message":"Retrieve failed: Failed to retrieve file: HTTP error 404 Not Found","cause":{}}',
         },
       ],
     });
@@ -99,7 +99,7 @@ describe('Retrieve Tool', () => {
         {
           error: true,
           type: 'text',
-          text: 'Retrieve failed: Failed to retrieve file: Network error',
+          text: '{"name":"Error","message":"Retrieve failed: Failed to retrieve file: Network error","cause":{}}',
         },
       ],
     });
@@ -118,7 +118,7 @@ describe('Retrieve Tool', () => {
         {
           error: true,
           type: 'text',
-          text: 'Retrieve failed: Failed to retrieve file: Unknown error',
+          text: '{"name":"Error","message":"Retrieve failed: Failed to retrieve file: Unknown error","cause":"Unknown error"}',
         },
       ],
     });
@@ -140,7 +140,7 @@ describe('Retrieve Tool', () => {
         {
           error: true,
           type: 'text',
-          text: 'Retrieve failed: Failed to retrieve file: Unknown error',
+          text: '{"name":"Error","message":"Retrieve failed: Failed to retrieve file: Unknown error","cause":{"custom":"Non-standard error object"}}',
         },
       ],
     });
@@ -171,7 +171,7 @@ describe('Retrieve Tool', () => {
         {
           error: true,
           type: 'text',
-          text: 'Retrieve failed: Failed to retrieve file: Direct error message',
+          text: '{"name":"Error","message":"Retrieve failed: Failed to retrieve file: Direct error message","cause":{}}',
         },
       ],
     });

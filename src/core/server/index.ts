@@ -30,7 +30,6 @@ async function startMCPServer(mcpConfig: McpServerConfig, storageConfig: Storage
     } else {
       await startStdioTransport(server, mcpConfig);
     }
-    console.error('MCP Server initialized. Server is ready to handle requests');
 
     return server;
   } catch (error) {

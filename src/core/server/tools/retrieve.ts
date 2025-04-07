@@ -37,7 +37,11 @@ export const retrieveTool = (storageConfig: StorageConfig) => ({
           {
             error: true,
             type: 'text' as const,
-            text: `Retrieve failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            text: JSON.stringify({
+              name: 'Error',
+              message: `Retrieve failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              cause: error instanceof Error ? (error.cause as Error | null) : null,
+            }),
           },
         ],
       };

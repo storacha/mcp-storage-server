@@ -133,7 +133,9 @@ const isCI = process.env.CI === 'true';
     });
 
     // Type assertion for upload response
-    const uploadContent = (uploadResponse.content as Array<{ type: string; text: string }>)[0];
+    const uploadContent = (
+      uploadResponse.content as Array<{ type: string; text: string; error: boolean }>
+    )[0];
     expect(uploadContent).toHaveProperty('text');
 
     // Parse upload response

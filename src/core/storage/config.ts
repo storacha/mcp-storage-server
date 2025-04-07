@@ -3,6 +3,10 @@ import { Signer } from '@ucanto/principal/ed25519';
 import { StorageConfig } from './types.js';
 import { parseDelegation } from './utils.js';
 
+/**
+ * Default gateway URL for the MCP server.
+ * The gateway URL is used to access the files uploaded to the MCP server.
+ */
 export const DEFAULT_GATEWAY_URL = 'https://storacha.link';
 
 export const loadConfig = async (): Promise<StorageConfig> => {
