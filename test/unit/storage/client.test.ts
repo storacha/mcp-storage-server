@@ -95,6 +95,31 @@ vi.mock('@ipld/car', () => ({
   __esModule: true,
 }));
 
+// Mock parseIpfsPath to allow tests with non-valid CIDs
+vi.mock('../../../src/core/storage/utils.js', async () => {
+  const actualUtils = await vi.importActual('../../../src/core/storage/utils.js');
+
+  return {
+    ...actualUtils,
+    parseIpfsPath: vi.fn(path => {
+      if (path.startsWith('test-cid/')) {
+        // Mock a valid CID for test-cid
+        return {
+          protocol: 'ipfs:',
+          cid: {
+            toString: () => 'test-cid',
+          },
+          pathname: path.substring(path.indexOf('/')),
+        };
+      }
+
+      // For other paths, throw an error similar to the real implementation
+      // This avoids dealing with the unknown type of actualUtils.parseIpfsPath
+      throw new Error('Invalid IPFS path');
+    }),
+  };
+});
+
 describe('StorachaClient', () => {
   // Create helper function for URL construction
   const buildGatewayUrl = (gateway: URL | undefined, path: string) => {
@@ -280,17 +305,18 @@ describe('StorachaClient', () => {
     it('should upload file successfully with base64 data', async () => {
       const result = await client.uploadFiles([mockUploadFile]);
 
-      expect(result).toEqual({
-        root: 'test-cid',
-        url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
-        files: [
-          {
-            name: 'test.txt',
-            cid: 'test-cid',
-            url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt'),
-          },
-        ],
-      });
+      // Direct assertions on specific properties
+      expect(result.root).toBeDefined();
+      expect(typeof result.root.toString).toBe('function');
+      expect(result.root.toString()).toBe('test-cid');
+      expect(result.url).toBeInstanceOf(URL);
+      expect(result.files).toBeInstanceOf(Map);
+
+      expect(result.url.toString()).toBe(
+        buildGatewayUrl(testConfig.gatewayUrl, 'test-cid').toString()
+      );
+      expect(result.files.has('test.txt')).toBe(true);
+
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
         expect.any(Array),
         expect.any(Object)
@@ -312,17 +338,18 @@ describe('StorachaClient', () => {
 
       const result = await client.uploadFiles([binaryFile]);
 
-      expect(result).toEqual({
-        root: 'test-cid',
-        url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
-        files: [
-          {
-            name: 'test.bin',
-            cid: 'test-cid',
-            url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.bin'),
-          },
-        ],
-      });
+      // Direct assertions on specific properties
+      expect(result.root).toBeDefined();
+      expect(typeof result.root.toString).toBe('function');
+      expect(result.root.toString()).toBe('test-cid');
+      expect(result.url).toBeInstanceOf(URL);
+      expect(result.files).toBeInstanceOf(Map);
+
+      expect(result.url.toString()).toBe(
+        buildGatewayUrl(testConfig.gatewayUrl, 'test-cid').toString()
+      );
+      expect(result.files.has('test.bin')).toBe(true);
+
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
         expect.any(Array),
         expect.any(Object)
@@ -375,17 +402,18 @@ describe('StorachaClient', () => {
     it('should handle upload without Filecoin publishing', async () => {
       const result = await client.uploadFiles([mockUploadFile], { publishToFilecoin: false });
 
-      expect(result).toEqual({
-        root: 'test-cid',
-        url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
-        files: [
-          {
-            name: 'test.txt',
-            cid: 'test-cid',
-            url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt'),
-          },
-        ],
-      });
+      // Direct assertions on specific properties
+      expect(result.root).toBeDefined();
+      expect(typeof result.root.toString).toBe('function');
+      expect(result.root.toString()).toBe('test-cid');
+      expect(result.url).toBeInstanceOf(URL);
+      expect(result.files).toBeInstanceOf(Map);
+
+      expect(result.url.toString()).toBe(
+        buildGatewayUrl(testConfig.gatewayUrl, 'test-cid').toString()
+      );
+      expect(result.files.has('test.txt')).toBe(true);
+
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
         expect.any(Array),
         expect.objectContaining({ pieceHasher: undefined })
@@ -400,17 +428,18 @@ describe('StorachaClient', () => {
 
       const result = await client.uploadFiles([fileWithoutType]);
 
-      expect(result).toEqual({
-        root: 'test-cid',
-        url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
-        files: [
-          {
-            name: 'test.txt',
-            cid: 'test-cid',
-            url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/test.txt'),
-          },
-        ],
-      });
+      // Direct assertions on specific properties
+      expect(result.root).toBeDefined();
+      expect(typeof result.root.toString).toBe('function');
+      expect(result.root.toString()).toBe('test-cid');
+      expect(result.url).toBeInstanceOf(URL);
+      expect(result.files).toBeInstanceOf(Map);
+
+      expect(result.url.toString()).toBe(
+        buildGatewayUrl(testConfig.gatewayUrl, 'test-cid').toString()
+      );
+      expect(result.files.has('test.txt')).toBe(true);
+
       expect(client.getStorage()?.uploadDirectory).toHaveBeenCalledWith(
         expect.any(Array),
         expect.any(Object)
@@ -424,17 +453,17 @@ describe('StorachaClient', () => {
       expect(result).toHaveProperty('root');
       expect(result).toHaveProperty('url');
       expect(result).toHaveProperty('files');
-      expect(Array.isArray(result.files)).toBe(true);
+      expect(result.files).toBeInstanceOf(Map);
 
       // Validate file entry structure
-      const fileEntry = result.files[0];
-      expect(fileEntry).toHaveProperty('name');
-      expect(fileEntry).toHaveProperty('cid');
-      expect(fileEntry).toHaveProperty('url');
+      expect(result.files.has('test.txt')).toBe(true);
+      const fileCid = result.files.get('test.txt');
+      expect(fileCid).toBeDefined();
+      expect(typeof fileCid?.toString).toBe('function');
 
       // Validate URL construction
-      expect(fileEntry.url).toBe(
-        buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/${fileEntry.name}`)
+      expect(result.url.toString()).toBe(
+        buildGatewayUrl(testConfig.gatewayUrl, `${result.root}`).toString()
       );
     });
 
@@ -446,17 +475,15 @@ describe('StorachaClient', () => {
 
       const result = await client.uploadFiles([largeFile]);
 
-      expect(result).toEqual({
-        root: 'test-cid',
-        url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid'),
-        files: [
-          {
-            name: 'large.bin',
-            cid: 'test-cid',
-            url: buildGatewayUrl(testConfig.gatewayUrl, 'test-cid/large.bin'),
-          },
-        ],
-      });
+      // Check that the file was added to the map
+      expect(result.files.has('large.bin')).toBe(true);
+      const fileCid = result.files.get('large.bin');
+      expect(fileCid).toBeDefined();
+      expect(fileCid?.toString()).toBe('test-cid');
+      expect(result.root.toString()).toBe('test-cid');
+      expect(result.url.toString()).toBe(
+        buildGatewayUrl(testConfig.gatewayUrl, 'test-cid').toString()
+      );
     });
 
     it('should handle concurrent uploads', async () => {
@@ -467,16 +494,22 @@ describe('StorachaClient', () => {
 
       const result = await client.uploadFiles(files);
 
-      expect(result.files).toHaveLength(2);
-      expect(result.files[0].name).toBe('file1.txt');
-      expect(result.files[1].name).toBe('file2.txt');
-      expect(result.files[0].cid).toBe('test-cid');
-      expect(result.files[1].cid).toBe('test-cid');
-      expect(result.files[0].url).toBe(
-        buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/file1.txt`)
-      );
-      expect(result.files[1].url).toBe(
-        buildGatewayUrl(testConfig.gatewayUrl, `${result.root}/file2.txt`)
+      // Check that both files were added to the map
+      expect(result.files.has('file1.txt')).toBe(true);
+      expect(result.files.has('file2.txt')).toBe(true);
+
+      // Check CIDs
+      const file1Cid = result.files.get('file1.txt');
+      const file2Cid = result.files.get('file2.txt');
+      expect(file1Cid).toBeDefined();
+      expect(file2Cid).toBeDefined();
+      expect(file1Cid?.toString()).toBe('test-cid');
+      expect(file2Cid?.toString()).toBe('test-cid');
+
+      // Root and URL should be properly set
+      expect(result.root.toString()).toBe('test-cid');
+      expect(result.url.toString()).toBe(
+        buildGatewayUrl(testConfig.gatewayUrl, 'test-cid').toString()
       );
     });
   });
@@ -495,17 +528,19 @@ describe('StorachaClient', () => {
     });
 
     it('should retrieve file successfully from gateway', async () => {
-      const result = await client.retrieve('test-cid');
+      const result = await client.retrieve('test-cid/file.txt');
       expect(result).toEqual({
         data: Buffer.from('test-data').toString('base64'),
         type: 'text/plain',
       });
-      expect(global.fetch).toHaveBeenCalledWith(new URL('/ipfs/test-cid', testConfig.gatewayUrl));
+      expect(global.fetch).toHaveBeenCalledWith(
+        new URL('/ipfs/test-cid/file.txt', testConfig.gatewayUrl)
+      );
     });
 
     it('should not throw error if client not initialized', async () => {
       const uninitializedClient = new StorachaClient(testConfig);
-      await expect(uninitializedClient.retrieve('test-cid')).resolves.toBeDefined();
+      await expect(uninitializedClient.retrieve('test-cid/file.txt')).resolves.toBeDefined();
     });
 
     it('should handle HTTP errors', async () => {
@@ -515,19 +550,21 @@ describe('StorachaClient', () => {
         statusText: 'Not Found',
       });
 
-      await expect(client.retrieve('test-cid')).rejects.toThrow('HTTP error 404 Not Found');
+      await expect(client.retrieve('test-cid/file.txt')).rejects.toThrow(
+        'HTTP error 404 Not Found'
+      );
     });
 
     it('should handle network errors', async () => {
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      await expect(client.retrieve('test-cid')).rejects.toThrow('Network error');
+      await expect(client.retrieve('test-cid/file.txt')).rejects.toThrow('Network error');
     });
 
     it('should handle unknown error types during retrieve', async () => {
       global.fetch = vi.fn().mockRejectedValue('Unknown error');
 
-      await expect(client.retrieve('test-cid')).rejects.toThrow('Unknown error');
+      await expect(client.retrieve('test-cid/file.txt')).rejects.toThrow('Unknown error');
     });
 
     it('should handle missing content-type header', async () => {
@@ -542,7 +579,7 @@ describe('StorachaClient', () => {
         headers: new Headers(),
       });
 
-      const result = await client.retrieve('test-cid');
+      const result = await client.retrieve('test-cid/file.txt');
       expect(result).toEqual({
         data: Buffer.from('test-data').toString('base64'),
         type: undefined,
@@ -562,9 +599,9 @@ describe('StorachaClient', () => {
         throw new Error('Gateway URL is not set');
       });
 
-      // The retrieve method should catch and properly format this error
-      await expect(clientWithoutGateway.retrieve('test-cid')).rejects.toThrow(
-        'Failed to retrieve file: Gateway URL is not set'
+      // The error should be passed through directly without wrapping
+      await expect(clientWithoutGateway.retrieve('test-cid/file.txt')).rejects.toThrow(
+        'Gateway URL is not set'
       );
     });
   });

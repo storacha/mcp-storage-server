@@ -1,5 +1,6 @@
 import { Capabilities, Delegation } from '@ucanto/interface';
 import { Signer } from '@ucanto/principal/ed25519';
+import { CID, UnknownLink } from 'multiformats';
 
 /**
  * Configuration options for the storage client
@@ -11,6 +12,31 @@ export interface StorageConfig {
   delegation: Delegation<Capabilities>;
   /** Optional gateway URL for file retrieval */
   gatewayUrl?: URL;
+}
+
+/**
+ * Represents a structured IPFS resource with protocol, CID, and pathname
+ */
+export interface Resource {
+  /** Protocol identifier, currently only 'ipfs:' is supported */
+  protocol: 'ipfs:'; // Could potentially support IPNS in the future
+  /** Content Identifier of the resource */
+  cid: CID;
+  /** Path to the resource, including leading slash and any subfolders/query params */
+  pathname: string;
+}
+
+/**
+ * Parsing error for IPFS paths
+ */
+export class IpfsPathError extends Error {
+  constructor(
+    message: string,
+    public readonly path: string
+  ) {
+    super(message);
+    this.name = 'IpfsPathError';
+  }
 }
 
 /**
@@ -40,18 +66,11 @@ export interface UploadOptions {
  */
 export interface UploadResult {
   /** Root CID of the directory containing the uploaded file */
-  root: string;
+  root: UnknownLink;
   /** HTTP gateway URL for accessing the file */
-  url: string;
-  /** List of files uploaded in the directory */
-  files: {
-    /** Name of the file */
-    name: string;
-    /** CID of the file */
-    cid: string;
-    /** URL of the file */
-    url: string;
-  }[];
+  url: URL;
+  /** Map of files uploaded in the directory */
+  files: Map<string, UnknownLink>;
 }
 
 /**
@@ -83,7 +102,7 @@ export interface StorageClient {
 
   /**
    * Retrieve a file from storage
-   * @param root - Root CID of the directory containing the file
+   * @param filepath - Path string in the format "cid/filename", "/ipfs/cid/filename", or "ipfs://cid/filename"
    */
-  retrieve(root: string): Promise<RetrieveResult>;
+  retrieve(filepath: string): Promise<RetrieveResult>;
 }

@@ -21,6 +21,8 @@ import { Principal } from '@ucanto/interface';
 import { DID } from '@ucanto/core';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { parseIpfsPath } from './utils.js';
+import { UnknownLink } from 'multiformats';
 
 /**
  * The Storage Service Identifier which will verify the delegation.
@@ -146,78 +148,61 @@ export class StorachaClient implements StorageClient {
       throw new Error('Client not initialized');
     }
 
-    try {
-      if (options.signal?.aborted) {
-        throw new Error('Upload aborted');
-      }
-
-      const fileObjects = files.map(file => {
-        const buffer = Buffer.from(file.content, 'base64');
-        return new File([buffer], file.name);
-      });
-
-      const uploadedFiles: { name: string; cid: string }[] = [];
-
-      const root = await this.storage.uploadDirectory(fileObjects, {
-        // Only set pieceHasher as undefined if we don't want to publish to Filecoin
-        ...(options.publishToFilecoin === true ? {} : { pieceHasher: undefined }),
-        retries: options.retries ?? 3,
-        signal: options.signal,
-        onDirectoryEntryLink: (link: DirectoryEntryLink) => {
-          if (link.name && link.name !== '') {
-            uploadedFiles.push({
-              name: link.name,
-              cid: link.cid.toString(),
-            });
-          }
-        },
-      });
-
-      return {
-        root: root.toString(),
-        url: new URL(`/ipfs/${root}`, this.getGatewayUrl()).toString(),
-        files: uploadedFiles.map(file => ({
-          name: file.name,
-          cid: file.cid,
-          url: new URL(`/ipfs/${file.cid}/${file.name}`, this.getGatewayUrl()).toString(),
-        })),
-      };
-    } catch (error: unknown) {
-      console.error(error);
-      throw error;
+    if (options.signal?.aborted) {
+      throw new Error('Upload aborted');
     }
+
+    const fileObjects = files.map(file => {
+      const buffer = Buffer.from(file.content, 'base64');
+      return new File([buffer], file.name);
+    });
+
+    const uploadedFiles: Map<string, UnknownLink> = new Map();
+
+    const root = await this.storage.uploadDirectory(fileObjects, {
+      // Only set pieceHasher as undefined if we don't want to publish to Filecoin
+      ...(options.publishToFilecoin === true ? {} : { pieceHasher: undefined }),
+      retries: options.retries ?? 3,
+      signal: options.signal,
+      onDirectoryEntryLink: (entry: DirectoryEntryLink) => {
+        if (entry.name && entry.name !== '') {
+          uploadedFiles.set(entry.name, entry.cid);
+        }
+      },
+    });
+
+    return {
+      root: root,
+      url: new URL(`/ipfs/${root.toString()}`, this.getGatewayUrl()),
+      files: uploadedFiles,
+    };
   }
 
   /**
    * Retrieve a file from the gateway
-   * @param filepath - Path in the format "cid/filename" where:
-   *               - cid: The Content Identifier of the directory
-   *               - filename: The name of the file to retrieve (required)
+   * @param filepath - Path string in the format "cid/filename", "/ipfs/cid/filename", or "ipfs://cid/filename"
    * @returns The file data and metadata
    * @throws Error if the response is not successful
    */
   async retrieve(filepath: string): Promise<RetrieveResult> {
-    try {
-      // The format must be "cid/filename" where filename is required
-      // We pass it directly to the URL constructor
-      const response = await fetch(new URL(`/ipfs/${filepath}`, this.getGatewayUrl()));
-      if (!response.ok) {
-        throw new Error(`HTTP error ${response.status} ${response.statusText}`);
-      }
+    // Parse the filepath into a Resource object
+    const resource = parseIpfsPath(filepath);
 
-      const buffer = await response.arrayBuffer();
-      const base64Data = Buffer.from(buffer).toString('base64');
-      const contentType = response.headers.get('content-type');
+    // Construct the URL from the Resource object components
+    const pathWithCid = `${resource.cid.toString()}${resource.pathname}`;
+    const response = await fetch(new URL(`/ipfs/${pathWithCid}`, this.getGatewayUrl()));
 
-      return {
-        data: base64Data,
-        type: contentType || undefined,
-      };
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw new Error(`Failed to retrieve file: ${error.message}`, { cause: error });
-      }
-      throw new Error('Failed to retrieve file: Unknown error', { cause: error });
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status} ${response.statusText}`);
     }
+
+    const buffer = await response.arrayBuffer();
+    const base64Data = Buffer.from(buffer).toString('base64');
+    const contentType = response.headers.get('content-type');
+
+    return {
+      data: base64Data,
+      type: contentType || undefined,
+    };
   }
 }

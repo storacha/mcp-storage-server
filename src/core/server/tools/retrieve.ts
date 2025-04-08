@@ -1,43 +1,26 @@
 import { z } from 'zod';
 import { StorachaClient } from '../../storage/client.js';
 import { StorageConfig } from 'src/core/storage/types.js';
-import { isValidCID } from 'src/core/storage/utils.js';
 
 type RetrieveInput = {
   filepath: string;
 };
 
-// Validate that the input is in the format "root cid/filename"
-// The filename part must be present for retrieval to work
+// Simplified schema that just validates that filepath is a non-empty string
+// The actual parsing/validation happens in the client
 const retrieveInputSchema = z.object({
   filepath: z
     .string()
-    .describe('The path to retrieve in format: root CID/filename (e.g., bafyxyz/image.jpg)')
-    .refine(
-      value => {
-        // If it is not a valid root CID it must contain a slash separator between CID and filename
-        if (!value.includes('/')) {
-          return false;
-        }
-
-        const parts = value.split('/');
-        const cid = parts[0];
-        const filename = parts[1];
-
-        // Both CID and filename must be valid
-        return isValidCID(cid) && filename.trim().length > 0;
-      },
-      {
-        message:
-          'Invalid format. Must be in the format root CID/filename (root CID followed by slash and filename).',
-      }
+    .min(1, 'Filepath cannot be empty')
+    .describe(
+      'The path to retrieve in format: CID/filename, /ipfs/CID/filename, or ipfs://CID/filename'
     ),
 });
 
 export const retrieveTool = (storageConfig: StorageConfig) => ({
   name: 'retrieve',
   description:
-    'Retrieve a file from the Storacha Network using the format root CID/filename. The filename must be specified after the CID with a slash separator.',
+    'Retrieve a file from the Storacha Network. Supports formats: CID/filename, /ipfs/CID/filename, or ipfs://CID/filename.',
   inputSchema: retrieveInputSchema,
   handler: async (input: RetrieveInput) => {
     try {
@@ -53,16 +36,16 @@ export const retrieveTool = (storageConfig: StorageConfig) => ({
         ],
       };
     } catch (error) {
-      console.error('Error: handling retrieve:', error);
+      console.error('Failed to retrieve resource:', error);
       return {
         content: [
           {
             error: true,
             type: 'text' as const,
             text: JSON.stringify({
-              name: 'Error',
-              message: `Retrieve failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-              cause: error instanceof Error ? (error.cause as Error | null) : null,
+              name: error instanceof Error ? error.name : 'Error',
+              message: error instanceof Error ? error.message : 'Unknown error',
+              cause: error instanceof Error && error.cause ? (error.cause as Error).message : null,
             }),
           },
         ],

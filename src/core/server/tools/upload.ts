@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { StorachaClient } from '../../storage/client.js';
 import { parseDelegation } from '../../storage/utils.js';
-import { StorageConfig } from 'src/core/storage/types.js';
+import { StorageConfig, UploadResult } from 'src/core/storage/types.js';
+import * as dagJSON from '@ipld/dag-json';
 
 const uploadInputSchema = z.object({
   file: z
@@ -56,7 +57,7 @@ export const uploadTool = (storageConfig: StorageConfig) => ({
       });
       await client.initialize();
 
-      const result = await client.uploadFiles(
+      const result: UploadResult = await client.uploadFiles(
         [
           {
             name: input.name,
@@ -73,11 +74,16 @@ export const uploadTool = (storageConfig: StorageConfig) => ({
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify(result),
+            text: dagJSON.stringify({
+              root: result.root,
+              url: result.url.toString(), // DAG JSON doesn't support URLs, so we convert to string
+              files: result.files,
+            }),
           },
         ],
       };
     } catch (error) {
+      console.error('Failed to upload resource:', error);
       return {
         content: [
           {

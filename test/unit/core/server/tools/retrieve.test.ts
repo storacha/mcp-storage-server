@@ -5,14 +5,6 @@ import { Signer } from '@ucanto/principal/ed25519';
 import { Delegation, Capabilities } from '@ucanto/interface';
 import { StorachaClient } from '../../../../../src/core/storage/client.js';
 
-// // Mock isValidCID function from the utils.js file
-// vi.mock('../../../../../src/core/storage/utils.js', () => ({
-//   isValidCID: vi.fn().mockImplementation((cid) => {
-//     // Simple mock that considers any non-empty string a valid CID
-//     return typeof cid === 'string' && cid.trim().length > 0;
-//   }),
-// }));
-
 // Create mocks
 const mockSigner = {
   did: () => 'did:key:mock',
@@ -48,11 +40,10 @@ describe('Retrieve Tool', () => {
   });
 
   it('should retrieve file successfully', async () => {
-    // Mock successful fetch response
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      arrayBuffer: async () => new TextEncoder().encode('test-data'),
-      headers: new Headers({ 'content-type': 'text/plain' }),
+    // Mock the client's retrieve method
+    vi.spyOn(StorachaClient.prototype, 'retrieve').mockResolvedValue({
+      data: Buffer.from('test-data').toString('base64'),
+      type: 'text/plain',
     });
 
     const tool = retrieveTool(mockStorageConfig);
@@ -69,181 +60,93 @@ describe('Retrieve Tool', () => {
         },
       ],
     });
-    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
+    expect(StorachaClient.prototype.retrieve).toHaveBeenCalledWith('test-cid/file.txt');
   });
 
-  it('should handle HTTP errors', async () => {
-    // Mock HTTP error response
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      statusText: 'Not Found',
-    });
+  it('should handle errors gracefully', async () => {
+    // Mock client.retrieve to throw an error
+    vi.spyOn(StorachaClient.prototype, 'retrieve').mockRejectedValue(
+      new Error('Failed to retrieve file: Some error message')
+    );
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ filepath: 'http-error-cid/file.txt' });
+    const result = await tool.handler({ filepath: 'error-path/file.txt' });
 
     expect(result).toEqual({
       content: [
         {
           error: true,
           type: 'text',
-          text: '{"name":"Error","message":"Retrieve failed: Failed to retrieve file: HTTP error 404 Not Found","cause":{}}',
+          text: '{"name":"Error","message":"Failed to retrieve file: Some error message","cause":null}',
         },
       ],
     });
-    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
+    expect(StorachaClient.prototype.retrieve).toHaveBeenCalledWith('error-path/file.txt');
   });
 
-  it('should handle network errors', async () => {
-    // Mock network error
-    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+  it('should handle non-Error objects', async () => {
+    // Mock client.retrieve to throw a non-Error object
+    vi.spyOn(StorachaClient.prototype, 'retrieve').mockRejectedValue('Some non-error');
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ filepath: 'network-error-cid/file.txt' });
+    const result = await tool.handler({ filepath: 'non-error-path/file.txt' });
 
     expect(result).toEqual({
       content: [
         {
           error: true,
           type: 'text',
-          text: '{"name":"Error","message":"Retrieve failed: Failed to retrieve file: Network error","cause":{}}',
+          text: '{"name":"Error","message":"Unknown error","cause":null}',
         },
       ],
     });
-    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
+    expect(StorachaClient.prototype.retrieve).toHaveBeenCalledWith('non-error-path/file.txt');
   });
 
-  it('should handle unknown error types', async () => {
-    // Mock unknown error
-    global.fetch = vi.fn().mockRejectedValue('Unknown error');
-
-    const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ filepath: 'unknown-error-cid/file.txt' });
-
-    expect(result).toEqual({
-      content: [
-        {
-          error: true,
-          type: 'text',
-          text: '{"name":"Error","message":"Retrieve failed: Failed to retrieve file: Unknown error","cause":"Unknown error"}',
-        },
-      ],
-    });
-    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
-  });
-
-  it('should handle explicitly thrown non-Error objects', async () => {
-    // Override global fetch to throw a non-Error object from within the client code
-    global.fetch = vi.fn().mockImplementation(() => {
-      // This simulates a situation where code inside client.retrieve throws a non-Error object
-      throw { custom: 'Non-standard error object' };
+  it('should accept various IPFS path formats', async () => {
+    // Mock the client's retrieve method
+    const retrieveMock = vi.spyOn(StorachaClient.prototype, 'retrieve').mockResolvedValue({
+      data: Buffer.from('test-data').toString('base64'),
+      type: 'text/plain',
     });
 
     const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ filepath: 'custom-error-cid/file.txt' });
 
-    expect(result).toEqual({
-      content: [
-        {
-          error: true,
-          type: 'text',
-          text: '{"name":"Error","message":"Retrieve failed: Failed to retrieve file: Unknown error","cause":{"custom":"Non-standard error object"}}',
-        },
-      ],
-    });
-    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
-  });
-
-  it('should handle direct Error objects with custom messages', async () => {
-    // Mock the client to directly throw an Error with a custom message
-    // This test specifically targets the error instanceof Error ? error.message : 'Unknown error' branch
-    const errorWithMessage = new Error('Direct error message');
-
-    // Create a custom storage config with a client that will throw our error
-    const customStorageConfig = {
-      ...mockStorageConfig,
-      gatewayUrl: undefined, // This will cause getGatewayUrl to throw our error
-    };
-
-    // Override the getGatewayUrl method to throw our specific error
-    vi.spyOn(StorachaClient.prototype, 'getGatewayUrl').mockImplementation(() => {
-      throw errorWithMessage;
-    });
-
-    const tool = retrieveTool(customStorageConfig);
-    const result = await tool.handler({ filepath: 'error-message-cid/file.txt' });
-
-    expect(result).toEqual({
-      content: [
-        {
-          error: true,
-          type: 'text',
-          text: '{"name":"Error","message":"Retrieve failed: Failed to retrieve file: Direct error message","cause":{}}',
-        },
-      ],
-    });
-  });
-
-  it('should handle missing content-type header', async () => {
-    // Mock response with missing content-type header
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      arrayBuffer: async () => new TextEncoder().encode('test-data'),
-      headers: new Headers(),
-    });
-
-    const tool = retrieveTool(mockStorageConfig);
-    const result = await tool.handler({ filepath: 'no-content-type-cid/file.txt' });
-
-    expect(result).toEqual({
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            data: Buffer.from('test-data').toString('base64'),
-          }),
-        },
-      ],
-    });
-    expect(global.fetch).toHaveBeenCalledWith(expect.any(URL));
-  });
-
-  it('should validate input schema', async () => {
-    const tool = retrieveTool(mockStorageConfig);
-    expect(tool.inputSchema).toBeDefined();
-    expect(tool.inputSchema.shape.filepath).toBeDefined();
-  });
-
-  it('should reject invalid filepath format without slash', async () => {
-    const tool = retrieveTool(mockStorageConfig);
-
-    // Parse the input through the schema to check validation
-    const schema = tool.inputSchema;
-    const result = schema.safeParse({ filepath: 'just-a-cid' });
-
-    expect(result.success).toBe(false);
-  });
-
-  it('should reject invalid filepath format with empty filename', async () => {
-    const tool = retrieveTool(mockStorageConfig);
-
-    // Parse the input through the schema to check validation
-    const schema = tool.inputSchema;
-    const result = schema.safeParse({ filepath: 'valid-cid/' });
-
-    expect(result.success).toBe(false);
-  });
-
-  it('should accept valid filepath format', async () => {
-    const tool = retrieveTool(mockStorageConfig);
-
-    // Parse the input through the schema to check validation
-    const schema = tool.inputSchema;
-    const result = schema.safeParse({
+    // Test with standard format
+    await tool.handler({
       filepath: 'bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
     });
+    expect(retrieveMock).toHaveBeenLastCalledWith(
+      'bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt'
+    );
 
-    expect(result.success).toBe(true);
+    // Test with /ipfs/ prefix
+    await tool.handler({
+      filepath: '/ipfs/bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
+    });
+    expect(retrieveMock).toHaveBeenLastCalledWith(
+      '/ipfs/bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt'
+    );
+
+    // Test with ipfs:// protocol
+    await tool.handler({
+      filepath: 'ipfs://bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
+    });
+    expect(retrieveMock).toHaveBeenLastCalledWith(
+      'ipfs://bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt'
+    );
+  });
+
+  it('should validate that filepath is not empty', async () => {
+    const tool = retrieveTool(mockStorageConfig);
+    const schema = tool.inputSchema;
+
+    // Empty string should fail validation
+    const emptyResult = schema.safeParse({ filepath: '' });
+    expect(emptyResult.success).toBe(false);
+
+    // Non-empty string should pass validation
+    const validResult = schema.safeParse({ filepath: 'valid-path' });
+    expect(validResult.success).toBe(true);
   });
 });
