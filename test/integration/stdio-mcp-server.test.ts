@@ -115,7 +115,6 @@ const isCI = process.env.CI === 'true';
     // Parse upload response
     const uploadResult = JSON.parse(uploadContent.text);
     expect(uploadResult).toHaveProperty('root');
-<<<<<<< HEAD
     // The root can be either a string or an object with toString method
     expect(uploadResult.root).toBeDefined();
     expect(uploadResult).toHaveProperty('url');
@@ -132,16 +131,14 @@ const isCI = process.env.CI === 'true';
     // Check the first file entry (could be in different formats depending on serialization)
     const firstFile = fileEntries[0];
     expect(firstFile).toBeDefined();
-=======
-    expect(typeof uploadResult.root).toBe('string');
+    // The root can be either a string or an object with toString method
+    expect(uploadResult.root).toBeDefined();
     expect(uploadResult).toHaveProperty('url');
     expect(uploadResult).toHaveProperty('files');
-    expect(Array.isArray(uploadResult.files)).toBe(true);
-    expect(uploadResult.files.length).toBeGreaterThan(0);
-    expect(uploadResult.files[0]).toHaveProperty('name');
-    expect(uploadResult.files[0]).toHaveProperty('url');
-    expect(uploadResult.files[0]).toHaveProperty('cid');
->>>>>>> 8ed405d (feat: preserve filename using uploadDirectory)
+
+    // Test that files is an object with at least one entry
+    expect(typeof uploadResult.files).toBe('object');
+    expect(uploadResult.files).not.toBeNull();
   }, 30_000); // Increase the timeout for upload test
 
   it('should retrieve a file', async () => {
