@@ -1,17 +1,26 @@
 import { z } from 'zod';
 import { StorachaClient } from '../../storage/client.js';
-import { parseDelegation } from '../../storage/utils.js';
+import { parseDelegation, base64ToBytes } from '../../storage/utils.js';
 import { StorageConfig, UploadResult } from 'src/core/storage/types.js';
 import * as dagJSON from '@ipld/dag-json';
 
 const uploadInputSchema = z.object({
   file: z
     .string()
-    .refine(str => {
-      // Remove any potential data URL prefix
-      const cleanStr = str.replace(/^data:.*?;base64,/, '');
-      return Buffer.from(cleanStr, 'base64').toString('base64') === cleanStr;
-    }, 'Invalid base64 string')
+    .min(1, 'File content cannot be empty')
+    .refine(
+      str => {
+        try {
+          base64ToBytes(str);
+          return true;
+        } catch (error) {
+          return false;
+        }
+      },
+      {
+        message: 'Invalid base64 format',
+      }
+    )
     .describe('The content of the file encoded as a base64 string'),
   name: z
     .string()
@@ -84,6 +93,25 @@ export const uploadTool = (storageConfig: StorageConfig) => ({
       };
     } catch (error) {
       console.error('Failed to upload resource:', error);
+
+      // If it's a Zod validation error, extract the message
+      if (error instanceof z.ZodError) {
+        const firstError = error.errors[0];
+        return {
+          content: [
+            {
+              error: true,
+              type: 'text' as const,
+              text: JSON.stringify({
+                name: 'Error',
+                message: firstError.message,
+                cause: null,
+              }),
+            },
+          ],
+        };
+      }
+
       return {
         content: [
           {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { loadConfig } from '../../../src/core/storage/config.js';
+import { loadConfig } from '../../../../src/core/storage/config.js';
 
 // Mock the required dependencies
 vi.mock('@ucanto/principal/ed25519', () => ({
@@ -16,13 +16,17 @@ vi.mock('@ucanto/principal/ed25519', () => ({
   },
 }));
 
-vi.mock('../../../src/core/storage/utils.js', () => ({
-  parseDelegation: vi.fn().mockResolvedValue({
-    root: {
-      did: () => 'did:key:test',
-      sign: vi.fn(),
-      verify: vi.fn(),
-    },
+// Mock the parseDelegation function to avoid base64 validation issues
+vi.mock('../../../../src/core/storage/utils.js', () => ({
+  parseDelegation: vi.fn().mockImplementation(async delegationStr => {
+    // Always return a valid delegation object regardless of input
+    return {
+      root: {
+        did: () => 'did:key:test',
+        sign: vi.fn(),
+        verify: vi.fn(),
+      },
+    };
   }),
 }));
 

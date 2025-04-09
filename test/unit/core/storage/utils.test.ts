@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
-  normalizeIpfsPath,
-  isValidCID,
-  parseIpfsPath,
   parseDelegation,
+  parseIpfsPath,
+  normalizeIpfsPath,
 } from '../../../../src/core/storage/utils.js';
 import { IpfsPathError } from '../../../../src/core/storage/types.js';
 import { CID } from 'multiformats';
@@ -155,17 +154,6 @@ describe('Storage Utils', () => {
       expect(normalizeIpfsPath('http://example.com/ipfs/file.txt')).toBe(
         'http://example.com/ipfs/file.txt'
       );
-    });
-  });
-
-  describe('isValidCID', () => {
-    it('should return true for valid CIDs', () => {
-      expect(isValidCID(VALID_CID)).toBe(true);
-    });
-
-    it('should return false for invalid CIDs', () => {
-      expect(isValidCID('not-a-cid')).toBe(false);
-      expect(isValidCID('')).toBe(false);
     });
   });
 

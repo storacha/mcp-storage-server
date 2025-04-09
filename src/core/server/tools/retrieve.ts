@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { StorachaClient } from '../../storage/client.js';
 import { StorageConfig } from 'src/core/storage/types.js';
+import * as dagJSON from '@ipld/dag-json';
 
 type RetrieveInput = {
   filepath: string;
@@ -31,7 +32,7 @@ export const retrieveTool = (storageConfig: StorageConfig) => ({
         content: [
           {
             type: 'text' as const,
-            text: JSON.stringify(result),
+            text: dagJSON.stringify(result),
           },
         ],
       };

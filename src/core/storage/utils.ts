@@ -1,7 +1,9 @@
 import { Capabilities, Delegation } from '@ucanto/interface';
 import * as Proof from '@storacha/client/proof';
-import { CID } from 'multiformats';
+import { CID } from 'multiformats/cid';
 import { Resource, IpfsPathError } from './types.js';
+import { base64 } from 'multiformats/bases/base64';
+import { Readable } from 'node:stream';
 
 /**
  * Parses a delegation from a base64 encoded CAR file
@@ -13,15 +15,6 @@ export async function parseDelegation(data: string): Promise<Delegation<Capabili
   const cleanedData = data.replace(/\s+/g, '');
   const proof = await Proof.parse(cleanedData);
   return proof;
-}
-
-export function isValidCID(cid: string): boolean {
-  try {
-    CID.parse(cid);
-    return true;
-  } catch (error) {
-    return false;
-  }
 }
 
 /**
@@ -96,4 +89,52 @@ export function normalizeIpfsPath(path: string): string {
   }
 
   return path;
+}
+
+/**
+ * Converts a base64 encoded string to bytes
+ * @param base64Str - The base64 encoded string to convert
+ * @returns A Uint8Array containing the decoded bytes
+ */
+export function base64ToBytes(base64Str: string): Uint8Array {
+  // Remove any potential data URL prefix
+  const cleanStr = base64Str.replace(/^data:.*?;base64,/, '');
+
+  try {
+    // First try with multiformats base64 decoder
+    // Add 'm' prefix required by multiformats base64 decoder if not present
+    const prefixedStr = cleanStr.startsWith('m') ? cleanStr : `m${cleanStr}`;
+    return base64.decode(prefixedStr);
+  } catch (error) {
+    // Fallback to standard base64 decoding
+    // Standard base64 decoding using Buffer in Node.js
+    const buffer = Buffer.from(cleanStr, 'base64');
+    if (buffer.toString('base64') === cleanStr) {
+      return new Uint8Array(buffer);
+    }
+    throw new Error('Invalid base64 format');
+  }
+}
+
+/**
+ * Converts a Readable stream to a base64 encoded string
+ * @param stream - The Readable stream to convert
+ * @returns A Promise that resolves to the base64 encoded string
+ */
+export async function streamToBase64(stream: Readable): Promise<string> {
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+
+  // Combine all chunks into a single Uint8Array
+  const bytes = new Uint8Array(chunks.reduce((acc, chunk) => acc + chunk.length, 0));
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  // Convert to base64 using multiformats
+  return base64.encode(bytes);
 }

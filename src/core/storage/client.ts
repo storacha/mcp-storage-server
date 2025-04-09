@@ -21,8 +21,11 @@ import { Principal } from '@ucanto/interface';
 import { DID } from '@ucanto/core';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { parseIpfsPath } from './utils.js';
-import { UnknownLink } from 'multiformats';
+import { parseIpfsPath, streamToBase64, base64ToBytes } from './utils.js';
+import { CID, UnknownLink } from 'multiformats';
+import { CarReader } from '@ipld/car';
+import { exporter } from 'ipfs-unixfs-exporter';
+import { Readable } from 'node:stream';
 
 /**
  * The Storage Service Identifier which will verify the delegation.
@@ -153,8 +156,8 @@ export class StorachaClient implements StorageClient {
     }
 
     const fileObjects = files.map(file => {
-      const buffer = Buffer.from(file.content, 'base64');
-      return new File([buffer], file.name);
+      const bytes = base64ToBytes(file.content);
+      return new File([bytes], file.name);
     });
 
     const uploadedFiles: Map<string, UnknownLink> = new Map();
@@ -190,14 +193,25 @@ export class StorachaClient implements StorageClient {
 
     // Construct the URL from the Resource object components
     const pathWithCid = `${resource.cid.toString()}${resource.pathname}`;
-    const response = await fetch(new URL(`/ipfs/${pathWithCid}`, this.getGatewayUrl()));
+    const response = await fetch(new URL(`/ipfs/${pathWithCid}?format=car`, this.getGatewayUrl()));
 
     if (!response.ok) {
-      throw new Error(`HTTP error ${response.status} ${response.statusText}`);
+      throw new Error(`Error fetching file: ${response.status} ${response.statusText}`);
     }
 
-    const buffer = await response.arrayBuffer();
-    const base64Data = Buffer.from(buffer).toString('base64');
+    // Read the CAR file and extract the content
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const reader = await CarReader.fromBytes(bytes);
+    const entry = await exporter(pathWithCid, {
+      async get(cid: CID) {
+        const block = await reader.get(cid);
+        if (!block) throw new Error(`not found: ${cid}`);
+        return block.bytes;
+      },
+    });
+
+    // Convert the content to a base64 string
+    const base64Data = await streamToBase64(Readable.from(entry.content()));
     const contentType = response.headers.get('content-type');
 
     return {
