@@ -20,7 +20,8 @@ import { DEFAULT_GATEWAY_URL } from './config.js';
 import { Principal } from '@ucanto/interface';
 import { DID } from '@ucanto/core';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { parseIpfsPath, streamToBase64, base64ToBytes } from './utils.js';
 import { CID, UnknownLink } from 'multiformats';
 import { CarReader } from '@ipld/car';
@@ -32,7 +33,10 @@ import { Readable } from 'node:stream';
  */
 const STORAGE_SERVICE_DID = 'did:web:web3.storage';
 
-const packageJson = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf-8'));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const rootDir = join(__dirname, '../../..');
+const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf-8'));
 
 /**
  * Add the major version of the MCP server to the headers of the Storacha client.

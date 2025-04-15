@@ -6,7 +6,7 @@
   "main": "index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "pnpm typecheck && tsc",
+    "build": "pnpm typecheck && tsc && cp package.json dist/package.json",
     "start": "node dist/index.js",
     "start:stdio": "MCP_TRANSPORT_MODE=stdio pnpm start",
     "start:sse": "MCP_TRANSPORT_MODE=sse pnpm start",
