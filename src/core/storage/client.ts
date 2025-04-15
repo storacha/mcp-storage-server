@@ -5,6 +5,7 @@ import {
   RetrieveResult,
   UploadOptions,
   UploadFile,
+  RetrieveOptions,
 } from './types.js';
 import * as Storage from '@storacha/client';
 import { StoreMemory } from '@storacha/client/stores/memory';
@@ -188,10 +189,11 @@ export class StorachaClient implements StorageClient {
   /**
    * Retrieve a file from the gateway
    * @param filepath - Path string in the format "cid/filename", "/ipfs/cid/filename", or "ipfs://cid/filename"
+   * @param options - Retrieve options
    * @returns The file data and metadata
    * @throws Error if the response is not successful
    */
-  async retrieve(filepath: string): Promise<RetrieveResult> {
+  async retrieve(filepath: string, options?: RetrieveOptions): Promise<RetrieveResult> {
     // Parse the filepath into a Resource object
     const resource = parseIpfsPath(filepath);
 
@@ -214,8 +216,9 @@ export class StorachaClient implements StorageClient {
       },
     });
 
-    // Convert the content to a base64 string
-    const base64Data = await streamToBase64(Readable.from(entry.content()));
+    // Convert the content to a base64 string based on the options
+    const useMultiformatBase64 = options?.useMultiformatBase64 ?? false;
+    const base64Data = await streamToBase64(Readable.from(entry.content()), useMultiformatBase64);
     const contentType = response.headers.get('content-type');
 
     return {

@@ -60,7 +60,9 @@ describe('Retrieve Tool', () => {
         },
       ],
     });
-    expect(StorachaClient.prototype.retrieve).toHaveBeenCalledWith('test-cid/file.txt');
+    expect(StorachaClient.prototype.retrieve).toHaveBeenCalledWith('test-cid/file.txt', {
+      useMultiformatBase64: undefined,
+    });
   });
 
   it('should handle errors gracefully', async () => {
@@ -81,7 +83,9 @@ describe('Retrieve Tool', () => {
         },
       ],
     });
-    expect(StorachaClient.prototype.retrieve).toHaveBeenCalledWith('error-path/file.txt');
+    expect(StorachaClient.prototype.retrieve).toHaveBeenCalledWith('error-path/file.txt', {
+      useMultiformatBase64: undefined,
+    });
   });
 
   it('should handle non-Error objects', async () => {
@@ -100,7 +104,9 @@ describe('Retrieve Tool', () => {
         },
       ],
     });
-    expect(StorachaClient.prototype.retrieve).toHaveBeenCalledWith('non-error-path/file.txt');
+    expect(StorachaClient.prototype.retrieve).toHaveBeenCalledWith('non-error-path/file.txt', {
+      useMultiformatBase64: undefined,
+    });
   });
 
   it('should accept various IPFS path formats', async () => {
@@ -117,7 +123,8 @@ describe('Retrieve Tool', () => {
       filepath: 'bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
     });
     expect(retrieveMock).toHaveBeenLastCalledWith(
-      'bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt'
+      'bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
+      { useMultiformatBase64: undefined }
     );
 
     // Test with /ipfs/ prefix
@@ -125,7 +132,8 @@ describe('Retrieve Tool', () => {
       filepath: '/ipfs/bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
     });
     expect(retrieveMock).toHaveBeenLastCalledWith(
-      '/ipfs/bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt'
+      '/ipfs/bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
+      { useMultiformatBase64: undefined }
     );
 
     // Test with ipfs:// protocol
@@ -133,7 +141,38 @@ describe('Retrieve Tool', () => {
       filepath: 'ipfs://bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
     });
     expect(retrieveMock).toHaveBeenLastCalledWith(
-      'ipfs://bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt'
+      'ipfs://bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
+      { useMultiformatBase64: undefined }
+    );
+  });
+
+  it('should pass useMultiformatBase64 flag to the client', async () => {
+    // Mock the client's retrieve method
+    const retrieveMock = vi.spyOn(StorachaClient.prototype, 'retrieve').mockResolvedValue({
+      data: Buffer.from('test-data').toString('base64'),
+      type: 'text/plain',
+    });
+
+    const tool = retrieveTool(mockStorageConfig);
+
+    // Test with useMultiformatBase64 set to true
+    await tool.handler({
+      filepath: 'bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
+      useMultiformatBase64: true,
+    });
+    expect(retrieveMock).toHaveBeenLastCalledWith(
+      'bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
+      { useMultiformatBase64: true }
+    );
+
+    // Test with useMultiformatBase64 set to false
+    await tool.handler({
+      filepath: 'bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
+      useMultiformatBase64: false,
+    });
+    expect(retrieveMock).toHaveBeenLastCalledWith(
+      'bafybeibv7vzycdcnydl5n5lbws6lul2omkm6a6b5wmqt77sicrwnhesy7y/bmoney.txt',
+      { useMultiformatBase64: false }
     );
   });
 

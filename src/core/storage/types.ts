@@ -84,6 +84,14 @@ export interface RetrieveResult {
 }
 
 /**
+ * Options for retrieving files
+ */
+export interface RetrieveOptions {
+  /** Whether to use multiformat base64 encoding instead of standard base64 */
+  useMultiformatBase64?: boolean;
+}
+
+/**
  * Interface for storage operations
  */
 export interface StorageClient {
@@ -103,6 +111,7 @@ export interface StorageClient {
   /**
    * Retrieve a file from storage
    * @param filepath - Path string in the format "cid/filename", "/ipfs/cid/filename", or "ipfs://cid/filename"
+   * @param options - Retrieve options
    */
-  retrieve(filepath: string): Promise<RetrieveResult>;
+  retrieve(filepath: string, options?: RetrieveOptions): Promise<RetrieveResult>;
 }

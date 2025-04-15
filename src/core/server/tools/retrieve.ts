@@ -5,10 +5,10 @@ import * as dagJSON from '@ipld/dag-json';
 
 type RetrieveInput = {
   filepath: string;
+  useMultiformatBase64?: boolean;
 };
 
-// Simplified schema that just validates that filepath is a non-empty string
-// The actual parsing/validation happens in the client
+// Schema with filepath and optional useMultiformatBase64 flag
 const retrieveInputSchema = z.object({
   filepath: z
     .string()
@@ -16,6 +16,10 @@ const retrieveInputSchema = z.object({
     .describe(
       'The path to retrieve in format: CID/filename, /ipfs/CID/filename, or ipfs://CID/filename'
     ),
+  useMultiformatBase64: z
+    .boolean()
+    .optional()
+    .describe('Whether to use multiformat base64 encoding instead of standard base64'),
 });
 
 export const retrieveTool = (storageConfig: StorageConfig) => ({
@@ -26,7 +30,9 @@ export const retrieveTool = (storageConfig: StorageConfig) => ({
   handler: async (input: RetrieveInput) => {
     try {
       const client = new StorachaClient(storageConfig);
-      const result = await client.retrieve(input.filepath);
+      const result = await client.retrieve(input.filepath, {
+        useMultiformatBase64: input.useMultiformatBase64,
+      });
 
       return {
         content: [

@@ -101,18 +101,24 @@ vi.mock('@ipld/car', () => ({
   __esModule: true,
 }));
 
-vi.mock('ipfs-unixfs-exporter', () => ({
-  exporter: vi.fn().mockResolvedValue({
-    content: () => ({
-      [Symbol.asyncIterator]: async function* () {
-        yield new Uint8Array([116, 101, 115, 116, 45, 100, 97, 116, 97]); // "test-data" in bytes
-      },
-    }),
-  }),
-  __esModule: true,
-}));
+vi.mock('ipfs-unixfs-exporter', () => {
+  const testData = new Uint8Array([116, 101, 115, 116, 45, 100, 97, 116, 97]); // "test-data" in bytes
 
-// Mock parseIpfsPath to allow tests with non-valid CIDs
+  return {
+    exporter: vi.fn(() => {
+      return {
+        content: () => ({
+          [Symbol.asyncIterator]: async function* () {
+            yield testData;
+          },
+        }),
+      };
+    }),
+    __esModule: true,
+  };
+});
+
+// Create a specialized mock to test base64 encoding options
 vi.mock('../../../src/core/storage/utils.js', async () => {
   const actualUtils = await vi.importActual('../../../src/core/storage/utils.js');
 
@@ -151,6 +157,9 @@ vi.mock('../../../src/core/storage/utils.js', async () => {
 
       // For other paths, throw an error similar to the real implementation
       throw new Error('Invalid IPFS path');
+    }),
+    streamToBase64: vi.fn().mockImplementation((stream, useMultiformatBase64) => {
+      return useMultiformatBase64 ? 'mdGVzdC1kYXRh' : 'dGVzdC1kYXRh';
     }),
   };
 });
@@ -564,7 +573,18 @@ describe('StorachaClient', () => {
     it('should retrieve file successfully from gateway', async () => {
       const result = await client.retrieve(`${validCid}/file.txt`);
       expect(result).toEqual({
-        data: 'mdGVzdC1kYXRh', // With 'm' prefix from multiformats base64 encoding
+        data: 'dGVzdC1kYXRh', // Standard base64 encoding (default behavior)
+        type: 'text/plain',
+      });
+      expect(global.fetch).toHaveBeenCalledWith(
+        new URL(`/ipfs/${validCid}/file.txt?format=car`, testConfig.gatewayUrl)
+      );
+    });
+
+    it('should retrieve file successfully from gateway and useMultiformatBase64', async () => {
+      const result = await client.retrieve(`${validCid}/file.txt`, { useMultiformatBase64: true });
+      expect(result).toEqual({
+        data: 'mdGVzdC1kYXRh', // Multiformat base64 with 'm' prefix
         type: 'text/plain',
       });
       expect(global.fetch).toHaveBeenCalledWith(

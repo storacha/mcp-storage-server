@@ -119,9 +119,13 @@ export function base64ToBytes(base64Str: string): Uint8Array {
 /**
  * Converts a Readable stream to a base64 encoded string
  * @param stream - The Readable stream to convert
+ * @param useMultiformatBase64 - Whether to use multiformat base64 encoding instead of standard base64
  * @returns A Promise that resolves to the base64 encoded string
  */
-export async function streamToBase64(stream: Readable): Promise<string> {
+export async function streamToBase64(
+  stream: Readable,
+  useMultiformatBase64 = false
+): Promise<string> {
   const chunks: Uint8Array[] = [];
   for await (const chunk of stream) {
     chunks.push(chunk);
@@ -135,6 +139,6 @@ export async function streamToBase64(stream: Readable): Promise<string> {
     offset += chunk.length;
   }
 
-  // Convert to base64 using multiformats
-  return base64.encode(bytes);
+  // Convert to either standard base64 or multiformat base64 depending on the flag
+  return useMultiformatBase64 ? base64.encode(bytes) : Buffer.from(bytes).toString('base64');
 }
