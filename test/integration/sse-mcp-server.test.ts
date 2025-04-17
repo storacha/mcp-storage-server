@@ -128,7 +128,6 @@ const isCI = process.env.CI === 'true';
       arguments: {
         file: fileContent, // Send as base64 string
         name: 'test-file.txt',
-        type: 'text/plain',
       },
     });
 

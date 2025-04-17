@@ -1,27 +1,8 @@
 # Storacha MCP Storage Server
 
-A Model Context Protocol (MCP) server implementation for Storacha storage, enabling AI applications to interact with decentralized storage through a standardized interface.
+A Model Context Protocol (MCP) server implementation for Storacha hot storage, allowing AI applications to store and retrieve files through a standardized interface. It enables trustless, decentralized data exchange using IPFS and CIDs, ensuring data sovereignty, verifiability, and seamless integration with agent frameworks & AI systems.
 
-## Features
-
-- **File Operations**
-  - Upload files to Storacha's decentralized storage network
-  - Retrieve files via Storacha's HTTP gateway
-- **Identity Management**
-  - Get the DID key of the Storacha agent
-- **Dual Transport Modes**
-  - HTTP with Server-Sent Events (SSE) for real-time communication
-  - Stdio transport for local integrations
-- **Standardized Interface**
-  - MCP-compliant API for tool discovery and invocation
-  - JSON-RPC message handling
-- **Security**
-  - Bearer Token
-  - CORS configuration
-  - Input validation
-  - Secure error handling
-
-## Usa Cases
+## Use Cases
 
 - **Document Storage & Analysis**: Securely upload and retrieve Blob documents.
 - **Long-term Structured Data Storage**: Maintain structured data storage optimized for longevity and accessibility.
@@ -53,25 +34,32 @@ A Model Context Protocol (MCP) server implementation for Storacha storage, enabl
    cp .env.example .env
    ```
 
-4. Configure the server using the following environment variables
+4. Generate the Private Key and Delegation
+
+   - Install the Storacha CLI
+     ```bash
+     npm i -g @storacha/cli
+     ```
+   - Generate Private Key
+     ```bash
+     storacha key create
+     ```
+     _Output:_
+     ```txt
+     Agent ID: did:key:z6MkhMZRW2aoJ6BQwkpMSJu68Jgqkz1FTpr1p69cpnN43YWG
+     Private Key: LMgCYLkvOc8Sm0mOL4cWFLxsWP0ZPEYrLxcQqsV93/s5RLje0BKx05muAse1Hkvh+sxUW38OcHtpiN1zxfpTJ4ht4jxV0=
+     ```
+   - Set the Agent ID & Create the Delegation
+     ```bash
+     storacha delegation create <AgentID> --can 'store/add' --can 'filecoin/offer' --can 'upload/add' --can 'space/blob/add' --can 'space/index/add' --base64
+     ```
+
+5. Set the environment variables to configure the server
 
    ```env
-   # MCP Server Configuration
-   MCP_SERVER_PORT=3001                # Optional: The port the server will listen on (default: 3001)
-   MCP_SERVER_HOST=0.0.0.0             # Optional: The host address to bind to (default: 0.0.0.0)
-   MCP_CONNECTION_TIMEOUT=30000        # Optional: The connection timeout in milliseconds (default: 30000)
-   MCP_TRANSPORT_MODE=stdio            # Optional: The transport mode to use (stdio or sse) (default: stdio)
-
-   # Security
-   SHARED_ACCESS_TOKEN=                # Optional: Set this to require authentication for uploads
-
    # Storage Client Configuration
    PRIVATE_KEY=                        # Required: The Storacha Agent private key that is authorized to upload files
    DELEGATION=                         # Optional: The base64 encoded delegation that authorizes the Agent owner of the private key to upload files. If not set, MUST be provided for each upload request.
-   GATEWAY_URL=https://storacha.link   # Optional: Custom gateway URL for file retrieval (default: https://storacha.link)
-
-   # File Limits
-   MAX_FILE_SIZE=104857600             # Optional: Maximum file size in bytes (default: 100MB)
    ```
 
 ### Starting the Server
@@ -88,116 +76,9 @@ Option 2 - Run the SSE Server (recommended for remote server communication)
 pnpm start:sse
 ```
 
-## MCP Client Integration (stdio mode)
+## MCP Client Integration
 
-##### Connect to the MCP Server
-
-```typescript
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-
-// Create the transport for communication
-const transport = new StdioClientTransport({
-  command: 'node',
-  args: ['dist/index.js'],
-  env: {
-    ...loadEnvVars(),
-    MCP_TRANSPORT_MODE: 'stdio',
-  },
-});
-
-// Instantiate the MCP client
-client = new Client(
-  {
-    name: 'test-client',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {},
-    },
-  }
-);
-
-// Connect to the server
-await client.connect(transport);
-```
-
-##### List Tools
-
-```typescript
-const response = await client.listTools();
-console.log(response.tools.map(tool => tool.name));
-// output: ['identity', 'retrieve', 'upload']
-```
-
-##### Get the Agent's DID Key
-
-```typescript
-// Get the agent's DID key
-const response = await client.callTool({
-  name: 'identity',
-  arguments: {}, // Send an empty object
-});
-console.log('Agent DID:', JSON.parse(response.content[0].text));
-// output:  {"id":"did:key:z6MkjiNpY1QhuULQUkF5thrDbVz2fZwg49zYMg4a7zY1KDr9"}
-```
-
-##### Upload a file
-
-```typescript
-// Upload a file to the storage space defined in the delegation set in the MCP Server
-const fileBuffer = new Uint8Array([1, 2, 3]);
-const base64File = Buffer.from(fileBuffer).toString('base64');
-const result = await client.invoke('upload', {
-  file: base64File,
-  name: 'example.txt',
-  type: 'text/plain',
-});
-// output: {"root":"bafk...123","rootURL":"https://storacha.link/ipfs/bafk...123","files":[{"name":"test.txt","type":"text/plain","url":"https://storacha.link/ipfs/bafk...123/test.txt"}]}
-```
-
-##### Upload a file using a custom delegation
-
-```typescript
-// Upload a file to the storage space defined in the delegation set in the upload request
-const result = await client.invoke('upload', {
-  file: base64File,
-  name: 'example.txt',
-  type: 'text/plain',
-  delegation: base64Delegation,
-});
-```
-
-_Read the [step-by-step guide](https://docs.storacha.network/concepts/ucan/#step-by-step-delegation-with-w3cli) to learn how to create a delegation using the CLI._
-
-## MCP Server Config
-
-**Cursor**
-
-```jsonc
-{
-  "mcpServers": {
-    "storacha-storage-server": {
-      "command": "node",
-      "args": [
-        // Absolute path to the mcp-storage-server/dist/index.js
-        "/path/to/mcp-storage-server/dist/index.js",
-      ],
-      "env": {
-        "MCP_TRANSPORT_MODE": "stdio",
-        // Required: The Storacha Agent private key that is authorized to upload files
-        "PRIVATE_KEY": "...",
-        // Optional: The base64 encoded delegation that authorizes the Agent owner of the private key to upload files. If not set, MUST be provided for each upload request.
-        "DELEGATION": "...",
-      },
-      "shell": true,
-      // Absolute path to the root folder of the project
-      "cwd": "/path/to/mcp-storage-server",
-    },
-  },
-}
-```
+There are several ways to integrate with the MCP Server, please read the [integrations.md](https://github.com/storacha/mcp-storage-server/blob/main/docs/integrations.md) guide for more information.
 
 ## Testing with MCP Inspector
 
@@ -228,49 +109,6 @@ pnpm start:stdio
 - Ensure the server is running in SSE or Stdio mode for Inspector compatibility
 
 ## Development
-
-### Project Structure
-
-```
-/
-├── src/
-│   ├── core/
-│   │   ├── server/
-│   │   │   ├── index.ts           # Main server entry point
-│   │   │   ├── config.ts          # Server configuration
-│   │   │   ├── types.ts           # TypeScript type definitions
-│   │   │   ├── tools/             # MCP tools implementation
-│   │   │   │   ├── index.ts       # Tool registration
-│   │   │   │   ├── upload.ts      # Upload tool
-│   │   │   │   ├── retrieve.ts    # Retrieve tool
-│   │   │   │   └── identity.ts    # Identity tool
-│   │   │   └── transports/        # Transport implementations
-│   │   │       ├── sse.ts         # SSE transport
-│   │   │       └── stdio.ts       # Stdio transport
-│   │   └── storage/               # Storage client implementation
-│   │       ├── client.ts          # Storage client
-│   │       ├── config.ts          # Storage configuration
-│   │       ├── types.ts           # Storage types
-│   │       └── utils.ts           # Storage utilities
-├── test/
-│   ├── core/
-│   │   ├── server/
-│   │   │   ├── config.test.ts     # Configuration tests
-│   │   │   ├── index.test.ts      # Server tests
-│   │   │   ├── tools/             # Tool tests
-│   │   │   └── transports/        # Transport tests
-│   │   └── storage/               # Storage tests
-│   ├── integration/               # Integration tests
-│   └── setup.ts                   # Test setup
-├── .env.example                   # Example environment variables
-├── .eslintrc.json                 # ESLint configuration
-├── .prettierrc                    # Prettier configuration
-├── .husky/                        # Git hooks
-│   └── pre-commit                 # Pre-commit hook
-├── package.json                   # Project dependencies and scripts
-├── tsconfig.json                  # TypeScript configuration
-└── README.md                      # Project documentation
-```
 
 ### Building
 
