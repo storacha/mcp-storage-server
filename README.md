@@ -78,32 +78,32 @@ Get started with the Storacha MCP Storage Server in just a few simple steps.
 
 4. **Configure the MCP Client**
 
-Next, configure your MCP client (such as Cursor) to use this server. Most MCP clients store the configuration as JSON in the following format:
+   Next, configure your MCP client (such as Cursor) to use this server. Most MCP clients store the configuration as JSON in the following format:
 
-```jsonc
-{
-  "mcpServers": {
-    "storacha-storage-server": {
-      "command": "node",
-      "args": ["./dist/index.js"],
-      "env": {
-        // The server also supports `sse` mode, the default is `stdio`.
-        "MCP_TRANSPORT_MODE": "stdio",
-        // The Storacha Agent private key that is authorized to store data into the Space.
-        "PRIVATE_KEY": "<agent_private_key>",
-        // The base64 encoded delegation that proves the Agent is allowed to store data. If not set, MUST be provided for each upload request.
-        "DELEGATION": "<base64_delegation>",
-      },
-      "shell": true,
-      "cwd": "./",
-    },
-  },
-}
-```
+   ```jsonc
+   {
+     "mcpServers": {
+       "storacha-storage-server": {
+         "command": "node",
+         "args": ["./dist/index.js"],
+         "env": {
+           // The server also supports `sse` mode, the default is `stdio`.
+           "MCP_TRANSPORT_MODE": "stdio",
+           // The Storacha Agent private key that is authorized to store data into the Space.
+           "PRIVATE_KEY": "<agent_private_key>",
+           // The base64 encoded delegation that proves the Agent is allowed to store data. If not set, MUST be provided for each upload request.
+           "DELEGATION": "<base64_delegation>",
+         },
+         "shell": true,
+         "cwd": "./",
+       },
+     },
+   }
+   ```
 
-Replace `<agent_private_key>` with the PrivateKey you created in step 3. Then, replace the `<base64_delegation>` with the delegation you created in step 3.
+   _Replace `<agent_private_key>` with the PrivateKey you created in step 3. Then, replace the `<base64_delegation>` with the delegation you created in step 3._
 
-There are several ways to configure MCP clients, please read the [integrations.md](https://github.com/storacha/mcp-storage-server/blob/main/docs/integrations.md) guide for more information.
+   _:warning: There are several ways to configure MCP clients, please read the [integrations.md](https://github.com/storacha/mcp-storage-server/blob/main/docs/integrations.md) guide for more information._
 
 ## Tools
 
@@ -153,7 +153,7 @@ interface IdentityParams {
 }
 ```
 
-See the [integrations.md](https://github.com/storacha/mcp-storage-server/blob/main/docs/integrations.md) guide for detailed code examples and different integration patterns.
+See the [integrations.md](https://github.com/storacha/mcp-storage-server/blob/main/docs/integrations.md) guide for detailed code examples and different integration patterns (SDK, Docker, etc).
 
 ## License
 

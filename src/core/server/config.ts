@@ -6,7 +6,7 @@ export const loadConfig = (): McpServerConfig => {
   const host = process.env.MCP_SERVER_HOST?.trim() || '0.0.0.0';
   const connectionTimeoutMs = parseInt(process.env.MCP_CONNECTION_TIMEOUT || '30000', 10);
   const transportMode = process.env.MCP_TRANSPORT_MODE?.trim() || 'stdio';
-  const maxFileSize = parseInt(process.env.MAX_FILE_SIZE || '104857600', 10);
+  const maxFileSizeBytes = parseInt(process.env.MAX_FILE_SIZE || '104857600', 10);
 
   if (isNaN(port) || port < 0 || port > 65535) {
     throw new Error('Invalid port number');
@@ -20,7 +20,7 @@ export const loadConfig = (): McpServerConfig => {
     throw new Error('Invalid transport mode');
   }
 
-  if (isNaN(maxFileSize) || maxFileSize < 0) {
+  if (isNaN(maxFileSizeBytes) || maxFileSizeBytes < 0) {
     throw new Error('Invalid max file size');
   }
 
@@ -29,5 +29,6 @@ export const loadConfig = (): McpServerConfig => {
     host,
     connectionTimeoutMs,
     transportMode,
+    maxFileSizeBytes,
   };
 };

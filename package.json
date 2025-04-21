@@ -4,6 +4,9 @@
   "description": "Storacha MCP Storage Server - Decentralized storage for AI systems",
   "type": "module",
   "main": "index.ts",
+  "bin": {
+    "mcp-storage-server": "./dist/index.js"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "pnpm typecheck && tsc && cp package.json dist/package.json",
@@ -23,7 +26,14 @@
     "inspect": "pnpm build && npx @modelcontextprotocol/inspector node dist/index.js",
     "inspect:sse": "MCP_TRANSPORT_MODE=sse pnpm inspect",
     "inspect:stdio": "MCP_TRANSPORT_MODE=stdio pnpm inspect",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "prepublishOnly": "pnpm build"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "keywords": [
     "mcp",

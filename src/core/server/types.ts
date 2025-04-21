@@ -12,6 +12,8 @@ export interface McpServerConfig {
   port: number;
   /** Host name */
   host: string;
+  /** Maximum file size in bytes */
+  maxFileSizeBytes: number;
 }
 
 /**

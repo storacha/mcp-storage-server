@@ -1,8 +1,28 @@
 # How to integrate with Storacha MCP Storage Server
 
-## MCP SDK
+## Start Your Server
 
-### Client Integration (STDIO mode)
+You can run the MCP server in two different modes:
+
+- **Local Communication**
+
+```bash
+pnpm start:stdio
+```
+
+- **Remote Communication**
+
+```bash
+pnpm start:sse
+```
+
+## Client Integrations
+
+You can integrate your client with Storacha MCP Storage Server with any of the following patterns.
+
+### SDK (stdio mode)
+
+Uses standard I/O streams for local communication.
 
 ```typescript
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -35,7 +55,9 @@ client = new Client(
 await client.connect(transport);
 ```
 
-### Client Integration (SSE mode)
+### SDK (sse mode)
+
+Uses Express with SSE for HTTP-based communication.
 
 ```typescript
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -58,6 +80,96 @@ client = new Client(
 
 // Connect to the server
 await client.connect(transport);
+```
+
+### MCP Client Config
+
+Most MCP clients store the configuration as JSON in the following format:
+
+```jsonc
+{
+  "mcpServers": {
+    "storacha-storage-server-stdio": {
+      "command": "node",
+      "args": ["./dist/index.js"],
+      "env": {
+        // The server also supports `sse` mode, the default is `stdio`.
+        "MCP_TRANSPORT_MODE": "stdio",
+        // The Storacha Agent private key that is authorized to store data into the Space.
+        "PRIVATE_KEY": "<agent_private_key>",
+        // The base64 encoded delegation that proves the Agent is allowed to store data. If not set, MUST be provided for each upload request.
+        "DELEGATION": "<base64_delegation>",
+      },
+      "shell": true,
+      "cwd": "./",
+    },
+  },
+}
+```
+
+Replace `<agent_private_key>` and `<base64_delegation>` with your actual values.
+
+### Docker
+
+You can run the Storacha MCP Storage Server in a Docker container, which makes it easy to deploy across different environments without worrying about dependencies or configuration. It uses SSE mode by default.
+
+### Building the Docker Image
+
+```bash
+docker build -t storacha-mcp-server .
+```
+
+### Running the Server in SSE Mode
+
+```bash
+docker run -p 3000:3000 \
+  -e PRIVATE_KEY="<agent_private_key>" \
+  -e DELEGATION="<base64_delegation>" \
+  storacha-mcp-server
+```
+
+Replace `<agent_private_key>` and `<base64_delegation>` with your actual values.
+
+### Environment Variables
+
+| Variable             | Description                       | Default  |
+| -------------------- | --------------------------------- | -------- |
+| `MCP_TRANSPORT_MODE` | Transport mode (`stdio` or `sse`) | `sse`    |
+| `MCP_SERVER_PORT`    | Port for SSE mode                 | `3000`   |
+| `PRIVATE_KEY`        | The Storacha Agent private key    | required |
+| `DELEGATION`         | Base64 encoded delegation         | optional |
+
+### Docker Compose Example
+
+```yaml
+version: '3'
+services:
+  storacha-mcp:
+    build:
+      context: .
+    ports:
+      - '3000:3000'
+    environment:
+      - PRIVATE_KEY=<agent_private_key>
+      - DELEGATION=<base64_delegation>
+      - MCP_TRANSPORT_MODE=sse
+      - MCP_SERVER_PORT=3000
+```
+
+### MCP Client Configuration for Docker SSE Mode
+
+When using the Docker container in SSE mode, configure your MCP client to connect to the SSE endpoint.
+
+For Cursor IDE or other MCP clients, you can use this configuration:
+
+```jsonc
+{
+  "mcpServers": {
+    "storacha-storage-server-sse": {
+      "url": "http://localhost:3000/sse",
+    },
+  },
+}
 ```
 
 ### Tools
@@ -128,32 +240,4 @@ const response = await client.callTool({
 });
 console.log(response.content[0].text); // Base64 encoded data
 // output: {"data":"IyBDdX...3Agc2VydmVy"}
-```
-
-## MCP Server Config
-
-### Cursor IDE MCP Server Config
-
-```jsonc
-{
-  "mcpServers": {
-    "storacha-storage-server": {
-      "command": "node",
-      "args": [
-        // Absolute path to the mcp-storage-server/dist/index.js
-        "/path/to/mcp-storage-server/dist/index.js",
-      ],
-      "env": {
-        "MCP_TRANSPORT_MODE": "stdio",
-        // Required: The Storacha Agent private key that is authorized to upload files
-        "PRIVATE_KEY": "...",
-        // Optional: The base64 encoded delegation that authorizes the Agent owner of the private key to upload files. If not set, MUST be provided for each upload request.
-        "DELEGATION": "...",
-      },
-      "shell": true,
-      // Absolute path to the root folder of the project
-      "cwd": "/path/to/mcp-storage-server",
-    },
-  },
-}
 ```
