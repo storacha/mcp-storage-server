@@ -27,6 +27,7 @@ describe('Server Configuration', () => {
       host: 'localhost',
       connectionTimeoutMs: 30000,
       transportMode: 'stdio',
+      maxFileSizeBytes: 1024 * 1024 * 100, // 100MB
     });
   });
 
@@ -37,6 +38,7 @@ describe('Server Configuration', () => {
       host: '0.0.0.0',
       connectionTimeoutMs: 30000,
       transportMode: 'stdio',
+      maxFileSizeBytes: 1024 * 1024 * 100, // 100MB
     });
   });
 
@@ -84,6 +86,7 @@ describe('Server Configuration', () => {
       port: 3001,
       host: '0.0.0.0',
       connectionTimeoutMs: 30000,
+      maxFileSizeBytes: 1024 * 1024 * 100, // 100MB
       transportMode: 'stdio',
     });
   });
@@ -97,6 +100,7 @@ describe('Server Configuration', () => {
       port: 3001,
       host: 'localhost',
       connectionTimeoutMs: 30000,
+      maxFileSizeBytes: 1024 * 1024 * 100, // 100MB
       transportMode: 'stdio',
     });
   });

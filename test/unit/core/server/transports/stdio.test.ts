@@ -27,6 +27,7 @@ describe('Stdio Transport', () => {
       port: 3000,
       connectionTimeoutMs: 5000,
       transportMode: 'stdio',
+      maxFileSizeBytes: 1024 * 1024 * 10, // 10MB
     };
 
     // Setup mock transport

@@ -41,6 +41,7 @@ describe('MCP Server', () => {
     host: 'localhost',
     connectionTimeoutMs: 30000,
     transportMode: 'stdio',
+    maxFileSizeBytes: 1024 * 1024 * 10, // 10MB
   };
 
   const mockStorageConfig: StorageConfig = {
