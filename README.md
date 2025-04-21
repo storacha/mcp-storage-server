@@ -2,6 +2,13 @@
 
 A Model Context Protocol (MCP) server implementation for Storacha hot storage, allowing AI applications to store and retrieve files through a standardized interface. It enables trustless, decentralized data exchange using IPFS and CIDs, ensuring data sovereignty, verifiability, and seamless integration with agent frameworks & AI systems.
 
+## Free Storage Options to Start 🚀
+
+Jump-start your decentralized storage journey today!
+
+- **GitHub Users**: Sign up with your GitHub account and instantly receive **100MB of free storage** — no credit card required!
+- **Email Users**: Register with your email and add a credit card to unlock **5GB of free storage space**.
+
 ## Use Cases
 
 - **Document Storage & Analysis**: Securely upload and retrieve Blob documents.
@@ -33,11 +40,11 @@ Get started with the Storacha MCP Storage Server in just a few simple steps.
 
    - **Install the CLI**
      ```bash
-     npm i -g @storacha/cli
+     npm install -g @web3-storage/w3cli
      ```
    - **Login to Storacha**
      ```bash
-     storacha login
+     w3 login
      ```
      _Output:_
      ```
@@ -48,14 +55,14 @@ Get started with the Storacha MCP Storage Server in just a few simple steps.
      _Select **Via GitHub** and authenticate with your GitHub account._
    - **Create a Space**
      ```bash
-     storacha space create <your_space_name>
+     w3 space create <your_space_name>
      ```
      _Replace `<your_space_name>` with a name for your new Space_.
      :warning: _Make sure you save the recovery key, so you can access your space from another device if needed._
    - **Create a Private Key**
 
      ```bash
-     storacha key create
+     w3 key create
      ```
 
      _Output:_
@@ -67,7 +74,7 @@ Get started with the Storacha MCP Storage Server in just a few simple steps.
 
    - **Set the Agent ID & Create Delegation**
      ```bash
-     storacha delegation create <agent_id> \
+     w3 delegation create <agent_id> \
       --can 'store/add' \
       --can 'filecoin/offer' \
       --can 'upload/add' \
