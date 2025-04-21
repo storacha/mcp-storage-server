@@ -2,6 +2,14 @@
 
 Thank you for considering contributing to the Storacha MCP Storage Server! We welcome contributions from the community to help improve and expand the project.
 
+## How to Contribute
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
 ## Project Structure
 
 ```
@@ -45,13 +53,52 @@ Thank you for considering contributing to the Storacha MCP Storage Server! We we
 └── README.md                      # Project documentation
 ```
 
-## How to Contribute
+## Development
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### Building
+
+```bash
+# Install dependencies
+pnpm install
+
+# Build the project
+pnpm build
+
+# Run tests
+pnpm test
+```
+
+## Testing with MCP Inspector
+
+The MCP Inspector provides a visual interface for testing and debugging MCP servers. To test the Storacha MCP server:
+
+1. Start the MCP Inspector
+
+```bash
+pnpm inspect:stdio
+```
+
+2. Start the Storacha MCP server
+
+```bash
+pnpm start:stdio
+```
+
+3. Connect to your server
+   - Open the Browser and access the Inspector UI at http://localhost:5173/#tools
+   - Enter the server URL (e.g., `http://localhost:3001`)
+   - The Inspector will automatically discover available tools
+   - You can test the upload and retrieve tools directly from the interface
+
+### Debugging Tips
+
+- Check the server logs for connection issues
+- Verify environment variables are set correctly
+- Ensure the server is running in SSE or Stdio mode for Inspector compatibility
+
+### Need Help?
+
+[Discord](https://discord.gg/pqa6Dn6RnP)
 
 ## License
 

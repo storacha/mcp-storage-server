@@ -8,128 +8,152 @@ A Model Context Protocol (MCP) server implementation for Storacha hot storage, a
 - **Long-term Structured Data Storage**: Maintain structured data storage optimized for longevity and accessibility.
 - **Data Sharing Between Agents and Systems**: Easily share data across multiple agents and diverse systems using **CIDs (Content Identifiers)**, enabling decentralized, verifiable, and efficient data exchange.
 - **Application Integration**: Seamlessly integrate Storacha storage retrieval into applications via the Model Context Protocol.
-- **AI Model Development**: Support AI models by providing reliable access to external datasets stored in Storacha.
+- **AI Model Development**: Support AI models by providing reliable versioning and access to external datasets stored in Storacha.
 - **LLM Integration**: Enhance large language models (LLMs) by connecting directly with Storacha Storage for seamless data access.
 - **Web Application Backups**: Reliably store backup copies of web applications for disaster recovery.
 - **Machine Learning Datasets**: Efficiently manage and access large datasets used in machine learning workflows.
 
-## Installation
+## Quick Installation Guide
 
-1. Clone the repository
+Get started with the Storacha MCP Storage Server in just a few simple steps.
+
+1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/storacha/mcp-storage-server.git
-   cd mcp-storage-server
+   git clone https://github.com/storacha/mcp-storage-server.git && cd mcp-storage-server
    ```
 
-2. Install dependencies
+2. **Install Dependencies**
 
    ```bash
    pnpm install
    ```
 
-3. Create a `.env` file
+3. **Generate Keys & Delegation**
 
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Generate the Private Key and Delegation
-
-   - Install the Storacha CLI
+   - **Install the CLI**
      ```bash
      npm i -g @storacha/cli
      ```
-   - Generate Private Key
+   - **Login to Storacha**
+     ```bash
+     storacha login
+     ```
+     _Output:_
+     ```
+     ? How do you want to login?
+       Via Email
+     ❯ Via GitHub
+     ```
+     _Select **Via GitHub** and authenticate with your GitHub account._
+   - **Create a Space**
+     ```bash
+     storacha space create <your_space_name>
+     ```
+     _Replace `<your_space_name>` with a name for your new Space_.
+     :warning: _Make sure you save the recovery key, so you can access your space from another device if needed._
+   - **Create a Private Key**
+
      ```bash
      storacha key create
      ```
+
      _Output:_
+
      ```txt
-     Agent ID: did:key:z6MkhMZRW2aoJ6BQwkpMSJu68Jgqkz1FTpr1p69cpnN43YWG
-     Private Key: LMgCYLkvOc8Sm0mOL4cWFLxsWP0ZPEYrLxcQqsV93/s5RLje0BKx05muAse1Hkvh+sxUW38OcHtpiN1zxfpTJ4ht4jxV0=
+     AgentId: did:key:z6MkhMZRW2aoJ6BQwkpMSJu68Jgqkz1FTpr1p69cpnN43YWG
+     PrivateKey: LMgCYLkvOc8Sm0mOL4cWFLxsWP0ZPEYrLxcQqsV93/s5RLje0BKx05muAse1Hkvh+sxUW38OcHtpiN1zxfpTJ4ht4jxV0=
      ```
-   - Set the Agent ID & Create the Delegation
+
+   - **Set the Agent ID & Create Delegation**
      ```bash
-     storacha delegation create <AgentID> --can 'store/add' --can 'filecoin/offer' --can 'upload/add' --can 'space/blob/add' --can 'space/index/add' --base64
+     storacha delegation create <agent_id> \
+      --can 'store/add' \
+      --can 'filecoin/offer' \
+      --can 'upload/add' \
+      --can 'space/blob/add' \
+      --can 'space/index/add' --base64
      ```
+     _Replace <agent_id> with the AgentId from the previous step. It grants the Agent the permission to store files into the recently created space_.
 
-5. Set the environment variables to configure the server
+4. **Configure the MCP Client**
 
-   ```env
-   # Storage Client Configuration
-   PRIVATE_KEY=                        # Required: The Storacha Agent private key that is authorized to upload files
-   DELEGATION=                         # Optional: The base64 encoded delegation that authorizes the Agent owner of the private key to upload files. If not set, MUST be provided for each upload request.
-   ```
+Next, configure your MCP client (such as Cursor) to use this server. Most MCP clients store the configuration as JSON in the following format:
 
-### Starting the Server
-
-Option 1 - Run the Stdio Server (recommended for local server communication)
-
-```bash
-pnpm start:stdio
+```jsonc
+{
+  "mcpServers": {
+    "storacha-storage-server": {
+      "command": "node",
+      "args": ["./dist/index.js"],
+      "env": {
+        // The server also supports `sse` mode, the default is `stdio`.
+        "MCP_TRANSPORT_MODE": "stdio",
+        // The Storacha Agent private key that is authorized to store data into the Space.
+        "PRIVATE_KEY": "<agent_private_key>",
+        // The base64 encoded delegation that proves the Agent is allowed to store data. If not set, MUST be provided for each upload request.
+        "DELEGATION": "<base64_delegation>",
+      },
+      "shell": true,
+      "cwd": "./",
+    },
+  },
+}
 ```
 
-Option 2 - Run the SSE Server (recommended for remote server communication)
+Replace `<agent_private_key>` with the PrivateKey you created in step 3. Then, replace the `<base64_delegation>` with the delegation you created in step 3.
 
-```bash
-pnpm start:sse
+There are several ways to configure MCP clients, please read the [integrations.md](https://github.com/storacha/mcp-storage-server/blob/main/docs/integrations.md) guide for more information.
+
+## Tools
+
+The Storacha MCP Storage Server provides the following tools for AI systems to interact with a decentralized storage network.
+
+### Storage Operations
+
+#### upload
+
+Upload a file to the Storacha Network. The file must be provided as a base64 encoded string with a filename that includes the extension for MIME type detection.
+
+```typescript
+interface UploadParams {
+  // Base64 encoded file content
+  file: string;
+  // Filename with extension for MIME type detection
+  name: string;
+  // Optional: Whether to publish to Filecoin (default: false)
+  publishToFilecoin?: boolean;
+  // Optional: Custom delegation proof
+  delegation?: string;
+  // Optional: Custom gateway URL
+  gatewayUrl?: string;
+}
 ```
 
-## MCP Client Integration
+#### retrieve
 
-There are several ways to integrate with the MCP Server, please read the [integrations.md](https://github.com/storacha/mcp-storage-server/blob/main/docs/integrations.md) guide for more information.
+Retrieve a file from the Storacha Network. Supported filepath formats: `CID/filename`, `/ipfs/CID/filename`, or `ipfs://CID/filename`.
 
-## Testing with MCP Inspector
-
-The MCP Inspector provides a visual interface for testing and debugging MCP servers. To test the Storacha MCP server:
-
-1. Start the MCP Inspector
-
-```bash
-pnpm inspect:stdio
+```typescript
+interface RetrieveParams {
+  // Path in format: CID/filename, /ipfs/CID/filename, or ipfs://CID/filename
+  filepath: string;
+  // Optional: Whether to use multiformat base64 encoding
+  useMultiformatBase64?: boolean;
+}
 ```
 
-2. Start the Storacha MCP server
+#### identity
 
-```bash
-pnpm start:stdio
+Returns the `DIDKey` of the Storacha Agent loaded from the private key storage configuration.
+
+```typescript
+interface IdentityParams {
+  // No parameters required
+}
 ```
 
-3. Connect to your server
-   - Open the Browser and access the Inspector UI at http://localhost:5173/#tools
-   - Enter the server URL (e.g., `http://localhost:3001`)
-   - The Inspector will automatically discover available tools
-   - You can test the upload and retrieve tools directly from the interface
-
-### Debugging Tips
-
-- Check the server logs for connection issues
-- Verify environment variables are set correctly
-- Ensure the server is running in SSE or Stdio mode for Inspector compatibility
-
-## Development
-
-### Building
-
-```bash
-# Install dependencies
-pnpm install
-
-# Build the project
-pnpm build
-
-# Run tests
-pnpm test
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+See the [integrations.md](https://github.com/storacha/mcp-storage-server/blob/main/docs/integrations.md) guide for detailed code examples and different integration patterns.
 
 ## License
 
