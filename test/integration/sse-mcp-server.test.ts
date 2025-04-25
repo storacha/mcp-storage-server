@@ -5,12 +5,14 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { getTestEnv, TEST_FILEPATH } from './test-config.js';
+import { ChildProcess } from 'child_process';
+import { spawn } from 'child_process';
 
 // Get directory name in ESM
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Test configuration
-const TEST_PORT = 3001;
+const PORT = 3002; // Specific port for SSE tests
 const TEST_HOST = 'localhost';
 
 // Skip tests if running in CI environment
@@ -20,40 +22,41 @@ const isCI = process.env.CI === 'true';
 (isCI ? describe.skip : describe)('MCP Server SSE Integration Tests', () => {
   let client: Client;
   let tempFilePath: string;
-  let serverProcess: any;
+  let serverProcess: ChildProcess;
   let clientTransport: SSEClientTransport;
 
   // Create a temporary test file and start server
   beforeAll(async () => {
-    // Create a temporary file for testing
-    tempFilePath = path.join(__dirname, 'test-file.txt');
-    await fs.writeFile(tempFilePath, 'This is a test file for upload');
+    // Create a temporary file path
+    tempFilePath = path.join(__dirname, '..', '..', 'temp-test-file.txt');
+    await fs.writeFile(tempFilePath, 'This is a test file', 'utf8');
 
-    // Start the server in SSE mode
-    const { spawn } = await import('child_process');
+    // Start server as a separate process
+    console.log('Starting SSE server process...');
     serverProcess = spawn('node', ['dist/index.js'], {
       env: {
+        ...process.env,
         ...getTestEnv(),
         MCP_TRANSPORT_MODE: 'sse', // Set SSE mode
-        PORT: TEST_PORT.toString(), // Set port for SSE server
+        MCP_SERVER_PORT: PORT.toString(), // Use the correct environment variable name
       },
       stdio: 'pipe',
     });
 
     // Log server output for debugging
-    serverProcess.stdout.on('data', (data: Buffer) => {
+    serverProcess.stdout?.on('data', (data: Buffer) => {
       console.log(`Server stdout: ${data.toString()}`);
     });
 
-    serverProcess.stderr.on('data', (data: Buffer) => {
-      console.error(`Server stderr: ${data.toString()}`);
+    serverProcess.stderr?.on('data', (data: Buffer) => {
+      console.log(`Server stderr: ${data.toString()}`);
     });
 
     // Wait for server to start
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Create client that connects to server in SSE mode
-    clientTransport = new SSEClientTransport(new URL(`http://${TEST_HOST}:${TEST_PORT}/sse`));
+    clientTransport = new SSEClientTransport(new URL(`http://${TEST_HOST}:${PORT}/sse`));
 
     client = new Client(
       {

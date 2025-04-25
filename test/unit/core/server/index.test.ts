@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { startStdioTransport } from '../../../../src/core/server/transports/stdio.js';
 import { startSSETransport } from '../../../../src/core/server/transports/sse.js';
+import { startRestTransport } from '../../../../src/core/server/transports/rest.js';
 import { McpServerConfig } from '../../../../src/core/server/types.js';
 import startMCPServer from '../../../../src/core/server/index.js';
 import { registerTools } from '../../../../src/core/server/tools/index.js';
@@ -15,6 +16,10 @@ vi.mock('../../../../src/core/server/transports/stdio.js', () => ({
 
 vi.mock('../../../../src/core/server/transports/sse.js', () => ({
   startSSETransport: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock('../../../../src/core/server/transports/rest.js', () => ({
+  startRestTransport: vi.fn().mockResolvedValue({}),
 }));
 
 // Mock the tools registration
@@ -41,6 +46,7 @@ describe('MCP Server', () => {
     host: 'localhost',
     connectionTimeoutMs: 30000,
     transportMode: 'stdio',
+    endpoint: '/',
     maxFileSizeBytes: 1024 * 1024 * 10, // 10MB
   };
 
@@ -71,6 +77,7 @@ describe('MCP Server', () => {
     expect(registerTools).toHaveBeenCalled();
     expect(startStdioTransport).toHaveBeenCalled();
     expect(startSSETransport).not.toHaveBeenCalled();
+    expect(startRestTransport).not.toHaveBeenCalled();
   });
 
   it('should initialize server with SSE transport', async () => {
@@ -80,6 +87,18 @@ describe('MCP Server', () => {
 
     expect(registerTools).toHaveBeenCalled();
     expect(startSSETransport).toHaveBeenCalled();
+    expect(startStdioTransport).not.toHaveBeenCalled();
+    expect(startRestTransport).not.toHaveBeenCalled();
+  });
+
+  it('should initialize server with REST transport', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await startMCPServer({ ...mockConfig, transportMode: 'rest' }, mockStorageConfig);
+
+    expect(registerTools).toHaveBeenCalled();
+    expect(startRestTransport).toHaveBeenCalled();
+    expect(startSSETransport).not.toHaveBeenCalled();
     expect(startStdioTransport).not.toHaveBeenCalled();
   });
 

@@ -49,6 +49,7 @@ describe('SSE Transport', () => {
       connectionTimeoutMs: 5000,
       transportMode: 'sse',
       maxFileSizeBytes: 1024 * 1024 * 10, // 10MB
+      endpoint: '/sse',
     };
 
     // Setup mock http server

@@ -13,6 +13,7 @@
     "start": "node dist/index.js",
     "start:stdio": "MCP_TRANSPORT_MODE=stdio pnpm start",
     "start:sse": "MCP_TRANSPORT_MODE=sse pnpm start",
+    "start:rest": "MCP_TRANSPORT_MODE=rest pnpm start",
     "dev": "tsc-watch --onSuccess \"node dist/index.js\"",
     "clean": "rm -rf dist",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"test/**/*.{ts,tsx}\"",
@@ -23,9 +24,11 @@
     "test:coverage": "pnpm typecheck && vitest run --coverage",
     "test": "pnpm typecheck && vitest run",
     "test:integration": "pnpm build && pnpm typecheck && vitest run test/integration/**.test.ts",
+    "test:integration:only": "pnpm build && pnpm typecheck && vitest run",
     "inspect": "pnpm build && npx @modelcontextprotocol/inspector node dist/index.js",
     "inspect:sse": "MCP_TRANSPORT_MODE=sse pnpm inspect",
     "inspect:stdio": "MCP_TRANSPORT_MODE=stdio pnpm inspect",
+    "inspect:rest": "MCP_TRANSPORT_MODE=rest pnpm inspect",
     "prepare": "husky install",
     "prepublishOnly": "pnpm build"
   },
@@ -51,6 +54,7 @@
     "dist"
   ],
   "dependencies": {
+    "@chatmcp/sdk": "^1.0.6",
     "@ipld/car": "^5.4.0",
     "@ipld/dag-json": "^10.2.3",
     "@ipld/unixfs": "^3.0.0",
@@ -72,6 +76,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.13",
+    "@types/node-fetch": "^2.6.12",
     "@typescript-eslint/eslint-plugin": "^8.29.0",
     "@typescript-eslint/parser": "^8.29.0",
     "@vitest/coverage-v8": "3.0.9",
@@ -79,6 +84,7 @@
     "eslint-config-prettier": "^10.1.1",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0",
+    "node-fetch": "^3.3.2",
     "prettier": "^3.5.3",
     "ts-node": "^10.9.2",
     "tsc-watch": "^6.2.1",

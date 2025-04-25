@@ -9,6 +9,7 @@ import { loadConfig as loadStorageConfig } from './src/core/storage/config.js';
  * Server mode is determined by the MCP_TRANSPORT_MODE environment variable:
  * - 'stdio': Starts the server in stdio mode (default)
  * - 'http': Starts the server in HTTP mode with SSE transport
+ * - 'rest': Starts the server in REST mode (MCP.so Cloud)
  */
 async function main() {
   try {

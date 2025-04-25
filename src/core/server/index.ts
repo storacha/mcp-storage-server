@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerTools } from './tools/index.js';
 import { startStdioTransport } from './transports/stdio.js';
 import { startSSETransport } from './transports/sse.js';
+import { startRestTransport } from './transports/rest.js';
 import { McpServerConfig } from './types.js';
 import { StorageConfig } from '../storage/types.js';
 /**
@@ -26,6 +27,8 @@ async function startMCPServer(mcpConfig: McpServerConfig, storageConfig: Storage
 
     if (mcpConfig.transportMode === 'sse') {
       await startSSETransport(server, mcpConfig);
+    } else if (mcpConfig.transportMode === 'rest') {
+      await startRestTransport(server, mcpConfig);
     } else {
       await startStdioTransport(server, mcpConfig);
     }

@@ -2,7 +2,7 @@
 
 ## Start Your Server
 
-You can run the MCP server in two different modes:
+You can run the MCP server in multiple different modes:
 
 - **Local Communication**
 
@@ -10,10 +10,16 @@ You can run the MCP server in two different modes:
 pnpm start:stdio
 ```
 
-- **Remote Communication**
+- **Remote Communication (SSE)**
 
 ```bash
 pnpm start:sse
+```
+
+- **Remote Communication (REST)**
+
+```bash
+pnpm start:rest
 ```
 
 ## Client Integrations
@@ -82,6 +88,42 @@ client = new Client(
 await client.connect(transport);
 ```
 
+### SDK (rest mode)
+
+Uses Express with REST for HTTP-based communication. This mode is compatible with MCP.so cloud hosting.
+
+```typescript
+import { fetch } from 'node-fetch';
+
+// Make direct JSON-RPC requests to the REST endpoint
+async function callTool(toolName, args) {
+  const response = await fetch(`http://${HOST}:${PORT}/rest`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 'client-request',
+      method: 'tools/call',
+      params: {
+        name: toolName,
+        arguments: args,
+      },
+    }),
+  });
+
+  return await response.json();
+}
+
+// Example: Upload a file
+const fileContent = Buffer.from('test content').toString('base64');
+const result = await callTool('upload', {
+  file: fileContent,
+  name: 'test-file.txt',
+});
+```
+
 ### MCP Client Config
 
 Most MCP clients store the configuration as JSON in the following format:
@@ -93,7 +135,7 @@ Most MCP clients store the configuration as JSON in the following format:
       "command": "node",
       "args": ["./dist/index.js"],
       "env": {
-        // The server also supports `sse` mode, the default is `stdio`.
+        // The server supports `stdio`, `sse`, and `rest` modes, the default is `stdio`.
         "MCP_TRANSPORT_MODE": "stdio",
         // The Storacha Agent private key that is authorized to store data into the Space.
         "PRIVATE_KEY": "<agent_private_key>",
@@ -111,7 +153,7 @@ Replace `<agent_private_key>` and `<base64_delegation>` with your actual values.
 
 ### Docker
 
-You can run the Storacha MCP Storage Server in a Docker container, which makes it easy to deploy across different environments without worrying about dependencies or configuration. It uses SSE mode by default.
+You can run the Storacha MCP Storage Server in a Docker container, which makes it easy to deploy across different environments without worrying about dependencies or configuration. It uses SSE mode by default but can be configured to use REST mode.
 
 ### Building the Docker Image
 
@@ -125,19 +167,50 @@ docker build -t storacha-mcp-server .
 docker run -p 3000:3000 \
   -e PRIVATE_KEY="<agent_private_key>" \
   -e DELEGATION="<base64_delegation>" \
+  -e MCP_TRANSPORT_MODE="sse" \
+  -e MCP_SERVER_PORT="3001" \
+  storacha-mcp-server
+```
+
+### Running the Server in REST Mode
+
+```bash
+docker run -p 3001:3001 \
+  -e PRIVATE_KEY="<agent_private_key>" \
+  -e DELEGATION="<base64_delegation>" \
+  -e MCP_TRANSPORT_MODE="rest" \
+  -e MCP_SERVER_PORT="3001" \
   storacha-mcp-server
 ```
 
 Replace `<agent_private_key>` and `<base64_delegation>` with your actual values.
 
+In case you want to keep the private key and delegation in a `.env` file, you can run the following:
+
+```bash
+source .env && docker run -p 3001:3001 \
+  -e PRIVATE_KEY="$PRIVATE_KEY" \
+  -e DELEGATION="$DELEGATION" \
+  -e MCP_TRANSPORT_MODE=rest \
+  -e MCP_SERVER_PORT=3001 \
+  storacha-mcp-server
+```
+
+Test the REST connection:
+
+```bash
+curl -X POST http://127.0.0.1:3001/rest -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":"2","method":"tools/list"}' | jq
+```
+
 ### Environment Variables
 
-| Variable             | Description                       | Default  |
-| -------------------- | --------------------------------- | -------- |
-| `MCP_TRANSPORT_MODE` | Transport mode (`stdio` or `sse`) | `sse`    |
-| `MCP_SERVER_PORT`    | Port for SSE mode                 | `3000`   |
-| `PRIVATE_KEY`        | The Storacha Agent private key    | required |
-| `DELEGATION`         | Base64 encoded delegation         | optional |
+| Variable             | Description                                | Default   |
+| -------------------- | ------------------------------------------ | --------- |
+| `MCP_TRANSPORT_MODE` | Transport mode (`stdio`, `sse`, or `rest`) | `stdio`   |
+| `MCP_SERVER_PORT`    | Port for SSE or REST mode                  | `3001`    |
+| `MCP_SERVER_HOST`    | Host for SSE or REST mode                  | `0.0.0.0` |
+| `PRIVATE_KEY`        | The Storacha Agent private key             | required  |
+| `DELEGATION`         | Base64 encoded delegation                  | optional  |
 
 ### Docker Compose Example
 
@@ -148,12 +221,12 @@ services:
     build:
       context: .
     ports:
-      - '3000:3000'
+      - '3001:3001'
     environment:
       - PRIVATE_KEY=<agent_private_key>
       - DELEGATION=<base64_delegation>
-      - MCP_TRANSPORT_MODE=sse
-      - MCP_SERVER_PORT=3000
+      - MCP_TRANSPORT_MODE=rest
+      - MCP_SERVER_PORT=3001
 ```
 
 ### MCP Client Configuration for Docker SSE Mode
@@ -171,6 +244,14 @@ For Cursor IDE or other MCP clients, you can use this configuration:
   },
 }
 ```
+
+### MCP.so Cloud Hosting
+
+The Storacha MCP Storage Server can be deployed to MCP.so cloud using the REST transport mode. This allows your server to be accessible from anywhere without having to manage your own infrastructure.
+
+Find the Storacha MCP Storage Server on the [MCP Playground](https://mcp.so/playground?server=storacha-storage), set the Private Key and the Delegation, and you are ready to go.
+
+For more details on hosting your MCP server on MCP.so, see the [official documentation](https://docs.mcp.so/server-hosting).
 
 ### Tools
 

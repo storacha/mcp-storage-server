@@ -7,13 +7,15 @@ export interface McpServerConfig {
   /** Connection timeout in milliseconds */
   connectionTimeoutMs: number;
   /** Transport mode */
-  transportMode: 'stdio' | 'sse';
+  transportMode: 'stdio' | 'sse' | 'rest';
   /** Port number */
   port: number;
   /** Host name */
   host: string;
   /** Maximum file size in bytes */
   maxFileSizeBytes: number;
+  /** REST endpoint */
+  endpoint?: string;
 }
 
 /**

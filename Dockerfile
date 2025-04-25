@@ -1,41 +1,33 @@
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
+
+# Install pnpm
+RUN npm install -g pnpm
+
+COPY ./ /app
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+# Force install without any prompts
+RUN --mount=type=cache,target=/root/.pnpm-store HUSKY=0 pnpm install --force --no-optional --frozen-lockfile --ignore-scripts --prod
 
-# Install dependencies
-RUN npm install -g pnpm && \
-    pnpm install
+FROM node:22-alpine AS release
 
-# Copy source code
-COPY . .
-
-# Build the application
-RUN pnpm build
-
-# Production stage
-FROM node:20-alpine
+# Install pnpm
+RUN npm install -g pnpm
 
 WORKDIR /app
 
-# Copy only the necessary files from the builder stage
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/pnpm-lock.yaml ./
-
-# Install only production dependencies
-RUN npm install -g pnpm && \
-    HUSKY=0 pnpm install --prod --ignore-scripts
-
-# Expose the port for SSE mode
-EXPOSE 3000
+COPY --from=builder /app/dist /app/dist
+COPY --from=builder /app/package.json /app/package.json
+COPY --from=builder /app/pnpm-lock.yaml /app/pnpm-lock.yaml
 
 # Set default environment variables
 ENV NODE_ENV=production
-ENV MCP_TRANSPORT_MODE=sse
-ENV MCP_SERVER_PORT=3000
+ENV MCP_TRANSPORT_MODE=rest
+ENV MCP_SERVER_PORT=3001
 
-# Run the server in SSE mode
-CMD ["node", "dist/index.js"] 
+# Remove node_modules if exists to avoid prompts
+RUN rm -rf node_modules || true
+RUN pnpm install --force --no-optional --frozen-lockfile --ignore-scripts --prod
+
+ENTRYPOINT ["node", "dist/index.js"]

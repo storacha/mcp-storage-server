@@ -28,6 +28,7 @@ describe('Server Configuration', () => {
       connectionTimeoutMs: 30000,
       transportMode: 'stdio',
       maxFileSizeBytes: 1024 * 1024 * 100, // 100MB
+      endpoint: '/rest',
     });
   });
 
@@ -39,6 +40,7 @@ describe('Server Configuration', () => {
       connectionTimeoutMs: 30000,
       transportMode: 'stdio',
       maxFileSizeBytes: 1024 * 1024 * 100, // 100MB
+      endpoint: '/rest',
     });
   });
 
@@ -88,6 +90,7 @@ describe('Server Configuration', () => {
       connectionTimeoutMs: 30000,
       maxFileSizeBytes: 1024 * 1024 * 100, // 100MB
       transportMode: 'stdio',
+      endpoint: '/rest',
     });
   });
 
@@ -102,6 +105,7 @@ describe('Server Configuration', () => {
       connectionTimeoutMs: 30000,
       maxFileSizeBytes: 1024 * 1024 * 100, // 100MB
       transportMode: 'stdio',
+      endpoint: '/rest',
     });
   });
 });

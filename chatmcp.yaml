@@ -1,0 +1,50 @@
+params:
+  type: object
+  properties:
+    PRIVATE_KEY:
+      type: string
+      description: The Storacha Agent private key
+    DELEGATION:
+      type: string
+      description: Base64 encoded delegation
+  required:
+    - PRIVATE_KEY
+    - DELEGATION
+
+rest:
+  name: storacha-storage
+  port: 3001
+  endpoint: /rest
+  dockerfile: ./Dockerfile
+
+docker:
+  command: |
+    docker run -i --rm -p 3001:3001 -e PRIVATE_KEY={PRIVATE_KEY} -e DELEGATION={DELEGATION} -e MCP_TRANSPORT_MODE=rest -e MCP_SERVER_PORT=3001 storacha-mcp-server
+  config: |
+    {
+      "mcpServers": {
+        "storacha-storage": {
+          "command": "docker",
+          "args": [
+            "run",
+            "-i",
+            "--rm",
+            "-p",
+            "3001:3001",
+            "-e",
+            "PRIVATE_KEY",
+            "-e",
+            "DELEGATION",
+            "-e",
+            "MCP_TRANSPORT_MODE=rest",
+            "-e",
+            "MCP_SERVER_PORT=3001",
+            "storacha-mcp-server"
+          ],
+          "env": {
+            "PRIVATE_KEY": "YOUR_PRIVATE_KEY_HERE",
+            "DELEGATION": "YOUR_DELEGATION_HERE"
+          }
+        }
+      }
+    } 

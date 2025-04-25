@@ -93,7 +93,7 @@ Get started with the Storacha MCP Storage Server in just a few simple steps.
          "command": "node",
          "args": ["./dist/index.js"],
          "env": {
-           // The server also supports `sse` mode, the default is `stdio`.
+           // The server supports `stdio`, `sse`, and `rest` modes, the default is `stdio`.
            "MCP_TRANSPORT_MODE": "stdio",
            // The Storacha Agent private key that is authorized to store data into the Space.
            "PRIVATE_KEY": "<agent_private_key>",
@@ -108,6 +108,22 @@ Get started with the Storacha MCP Storage Server in just a few simple steps.
    ```
 
    _Replace `<agent_private_key>` with the PrivateKey you created in step 3. Then, replace the `<base64_delegation>` with the delegation you created in step 3._
+
+   ### REST Mode and Cloud Hosting
+
+   The Storacha MCP Storage Server supports REST transport mode, which is compatible with MCP.so cloud hosting. To use REST mode:
+
+   ```jsonc
+   {
+     "mcpServers": {
+       "storacha-storage-server-rest": {
+         "url": "http://localhost:3001/rest",
+       },
+     },
+   }
+   ```
+
+   For more information on deploying to MCP.so cloud, see the [integrations.md](https://github.com/storacha/mcp-storage-server/blob/main/docs/integrations.md#mcpso-cloud-hosting) guide.
 
    _:warning: There are several ways to configure MCP clients, please read the [integrations.md](https://github.com/storacha/mcp-storage-server/blob/main/docs/integrations.md) guide for more information._
 
